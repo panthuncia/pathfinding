@@ -38,8 +38,8 @@ std::pair<double, double> rotateAndScale(Node* pt, double radians, uint32_t h, u
 }
 
 void do_maps() {
-    Map map = Map(300, 300);
-    map.generate_obstacles(0, 300);
+    Map map = Map(1000, 1000);
+    map.generate_obstacles(90, 300);
 
     //rotate map
     double wind_angle_deg = 10;
