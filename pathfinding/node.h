@@ -4,7 +4,7 @@
 #include <unordered_map>
 class Node {
 public:
-    int x, y;
+    uint32_t x, y;
     bool operator==(const Node& other) const {
         return x == other.x && y == other.y;
     }
@@ -12,8 +12,8 @@ public:
 
 struct NodeHasher {
     std::size_t operator()(const Node& k) const {
-        std::size_t h1 = std::hash<int>()(k.x);
-        std::size_t h2 = std::hash<int>()(k.y);
+        std::size_t h1 = std::hash<uint32_t>()(k.x);
+        std::size_t h2 = std::hash<uint32_t>()(k.y);
 
         return h1 ^ h2;
     }

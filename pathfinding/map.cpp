@@ -1,7 +1,12 @@
 #include "map.h"
 #include <vector>
 #include <random>
-void Map::regenerate_map(int num_obstacles, int max_blob_size) {
+#include <opencv2/opencv.hpp>
+Map::Map(uint32_t map_width, uint32_t map_height) {
+    height = map_height;
+    width = map_width;
+}
+void Map::generate_obstacles(int num_obstacles, int max_blob_size) {
     data = std::vector<float>(width * height, 0.0f); // Initialize grid with zeros
 
     std::random_device rd; // Obtain a random number from hardware
@@ -37,4 +42,34 @@ void Map::create_blob(std::vector<float>& grid, int width, int blob_start_x, int
         blob_start_x = std::max(0, std::min(width - 1, blob_start_x + dx));
         blob_start_y = std::max(0, std::min(static_cast<int>(grid.size() / width) - 1, blob_start_y + dy));
     }
+}
+
+Map Map::rotate(double map_angle_deg) {
+    //rotate map
+    cv::Mat grid = cv::Mat(height, width, CV_32FC1, data.data());
+    cv::Point2f center((grid.cols - 1) / 2.0, (grid.rows - 1) / 2.0);    cv::Mat rot = cv::getRotationMatrix2D(center, map_angle_deg, 1.0);
+    cv::Rect2f bbox = cv::RotatedRect(cv::Point2f(), grid.size(), map_angle_deg).boundingRect2f();
+    rot.at<double>(0, 2) += bbox.width / 2.0 - grid.cols / 2.0;
+    rot.at<double>(1, 2) += bbox.height / 2.0 - grid.rows / 2.0;
+
+    cv::Mat rotated_grid;
+    cv::warpAffine(grid, rotated_grid, rot, bbox.size(), cv::INTER_NEAREST, cv::BORDER_CONSTANT, cv::Scalar(1.0));
+    int newHeight = rotated_grid.rows;
+    int newWidth = rotated_grid.cols;
+    // Ensure the data type is correct
+    if (rotated_grid.type() != CV_32FC1) {
+        rotated_grid.convertTo(rotated_grid, CV_32FC1);
+    }
+
+    // Flatten the matrix if it's not already a single row or single column
+    if (rotated_grid.rows > 1 && rotated_grid.cols > 1) {
+        rotated_grid = rotated_grid.reshape(1, 1); // Reshape to a single row
+    }
+
+    // Convert cv::Mat to std::vector<float>
+    std::vector<float> rotated_vector;
+    rotated_vector.assign((float*)rotated_grid.datastart, (float*)rotated_grid.dataend);
+    Map new_map = Map(newWidth, newHeight);
+    new_map.data = rotated_vector;
+    return new_map;
 }

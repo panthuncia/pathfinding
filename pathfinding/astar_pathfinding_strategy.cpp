@@ -117,7 +117,7 @@ std::vector<Node> AStarPathfindingStrategy::solve(Map map, Node start, Node goal
 		}
 	}
 	if (openSet.size() == 0) {
-		std::cout << "No path found!";
+		std::cout << "No path found!" << std::endl;
 		std::vector<Node> empty;
 		return empty;
 	}

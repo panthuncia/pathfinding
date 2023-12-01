@@ -3,6 +3,8 @@
 
 #include "pathfinding.h"
 #include <random>
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <opencv2/opencv.hpp>
 #include "map.h"
 #include "astar_pathfinding_strategy.h"
@@ -16,52 +18,72 @@ Node generateRandomPoint(int width, int height) {
     return Node(distrX(eng), distrY(eng));
 }
 
-int main()
-{
-    Map map = Map(100, 100, 30, 100);
+std::pair<double, double> rotateAndScale(Node pt, double radians, uint32_t h, uint32_t w, uint32_t h_new, uint32_t w_new) {
+    double x = pt.x;
+    double y = pt.y;
+    double offset_x = h/2;
+    double offset_y = w/2;
+    double adjusted_x = x - offset_x;
+    double adjusted_y = y - offset_y;
+    double cos_rad = cos(radians);
+    double sin_rad = sin(radians);
+    double qx = offset_x + cos_rad * adjusted_x + sin_rad * adjusted_y;
+    double qy = offset_y + -sin_rad * adjusted_x + cos_rad * adjusted_y;
+    double xoffset = (int(w_new) - int(w)) / 2;
+    double yoffset = (int(h_new) - int(h)) / 2;
+    double x1_new = qx + xoffset;
+    double y1_new = qy + yoffset;
+    return std::make_pair(x1_new, y1_new);
+}
+
+void do_maps() {
+    Map map = Map(100, 100);
+    map.generate_obstacles(30, 100);
 
     //rotate map
-    cv::Mat grid = cv::Mat(map.height, map.width, CV_32FC1, map.data.data());
     double wind_angle_deg = 30;
     double map_angle_deg = 90 + wind_angle_deg;
-    cv::Point2f center((grid.cols - 1) / 2.0, (grid.rows - 1) / 2.0);    cv::Mat rot = cv::getRotationMatrix2D(center, map_angle_deg, 1.0);
-    cv::Rect2f bbox = cv::RotatedRect(cv::Point2f(), grid.size(), map_angle_deg).boundingRect2f();
-    rot.at<double>(0, 2) += bbox.width / 2.0 - grid.cols / 2.0;
-    rot.at<double>(1, 2) += bbox.height / 2.0 - grid.rows / 2.0;
-    
-    cv::Mat rotated_grid;
-    cv::warpAffine(grid, rotated_grid, rot, bbox.size(), cv::INTER_NEAREST, cv::BORDER_CONSTANT, cv::Scalar(1.0));
-    int newHeight = rotated_grid.rows;
-    int newWidth = rotated_grid.cols;
-    // Ensure the data type is correct
-    if (rotated_grid.type() != CV_32FC1) {
-        rotated_grid.convertTo(rotated_grid, CV_32FC1);
-    }
+    Map rotated_map = map.rotate(map_angle_deg);
 
-    // Flatten the matrix if it's not already a single row or single column
-    if (rotated_grid.rows > 1 && rotated_grid.cols > 1) {
-        rotated_grid = rotated_grid.reshape(1, 1); // Reshape to a single row
-    }
-
-    // Convert cv::Mat to std::vector<float>
-    std::vector<float> rotated_vector;
-    rotated_vector.assign((float*)rotated_grid.datastart, (float*)rotated_grid.dataend);
 
     auto start = generateRandomPoint(map.width, map.height);
     auto goal = generateRandomPoint(map.width, map.height);
+    auto transformed_start_doubles = rotateAndScale(start, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
+    auto transformed_goal_doubles = rotateAndScale(goal, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
+    Node transformed_start = Node(transformed_start_doubles.first, transformed_start_doubles.second);
+    Node transformed_goal = Node(transformed_goal_doubles.first, transformed_goal_doubles.second);
     cout << map.data.size();
     AStarPathfindingStrategy solver;
-    auto path = solver.solve(map, start, goal);
+    auto path = solver.solve(rotated_map, transformed_start, transformed_goal);
+    if (path.size() == 0) {
+        cout << "start: " + std::to_string(start.x) + ", " + std::to_string(start.y) << std::endl;
+        cout << "goal: " + std::to_string(goal.x) + ", " + std::to_string(goal.y) << std::endl;
+        cout << "transformed start: " + std::to_string(transformed_start.x) + ", " + std::to_string(transformed_start.y) << std::endl;
+        cout << "transformed goal: " + std::to_string(transformed_goal.x) + ", " + std::to_string(transformed_goal.y) << std::endl;
+        return;
+    }
+    std::vector<std::pair<double, double>> transformed_path;
+    std::vector<std::pair<double, double>> un_transformed_path;
+    for (Node n : path) {
+        auto transformed_doubles = rotateAndScale(n, -map_angle_deg * (M_PI / 180), rotated_map.height, rotated_map.width, map.height, map.width);
+        un_transformed_path.push_back(std::make_pair(transformed_doubles.first, transformed_doubles.second));
+        transformed_path.push_back(std::make_pair(n.x, n.y));
+    }
     cout << "length:";
-    cout << path.size();
-    displayGrid(map.data, map.width, map.height, path, "grid");
-    displayGrid(rotated_vector, newWidth, newHeight, path, "rotated grid");
-
+    cout << un_transformed_path.size();
+    displayGrid(map.data, map.width, map.height, un_transformed_path, "grid");
+    displayGrid(rotated_map.data, rotated_map.width, rotated_map.height, transformed_path, "rotated grid");
     cv::waitKey(0); // Wait for a key press to close the window
-	return 0;
 }
 
-void displayGrid(const std::vector<float>& grid, int width, int height, const std::vector<Node>& path, const char* name) {
+int main()
+{
+    while (true) {
+        do_maps();
+    }
+}
+
+void displayGrid(const std::vector<float>& grid, int width, int height, const std::vector<std::pair<double, double>>& path, const char* name) {
     int cellSize = 3; // Size of each cell in the displayed image
     cv::Mat image(height * cellSize, width * cellSize, CV_8UC3, cv::Scalar(255, 255, 255));
 
@@ -78,14 +100,26 @@ void displayGrid(const std::vector<float>& grid, int width, int height, const st
         }
     }
 
-    for (const auto& node : path) {
-        int index = node.y * width + node.x;
-        cv::rectangle(image,
-            cv::Point(node.x * cellSize, node.y * cellSize),
-            cv::Point((node.x + 1) * cellSize, (node.y + 1) * cellSize),
-            cv::Scalar(0, 0, 255), // Red color for path
-            cv::FILLED);
+    // Draw the path as a line
+    for (size_t i = 0; i < path.size() - 1; ++i) {
+        cv::Point pt1(path[i].first * cellSize + cellSize / 2, path[i].second * cellSize + cellSize / 2);
+        cv::Point pt2(path[i + 1].first * cellSize + cellSize / 2, path[i + 1].second * cellSize + cellSize / 2);
+        cv::line(image, pt1, pt2, cv::Scalar(0, 0, 255), 2); // Red color for path
     }
+
+    // Draw start position as a green circle
+    cv::circle(image,
+        cv::Point(path[0].first * cellSize + cellSize / 2, path[0].second * cellSize + cellSize / 2),
+        cellSize * 2,
+        cv::Scalar(0, 255, 0), // Green color for start
+        cv::FILLED);
+
+    // Draw end position as a blue circle
+    cv::circle(image,
+        cv::Point(path.back().first * cellSize + cellSize / 2, path.back().second * cellSize + cellSize / 2),
+        cellSize * 2,
+        cv::Scalar(255, 0, 0), // Blue color for end
+        cv::FILLED);
 
     cv::imshow(name, image);
 }
