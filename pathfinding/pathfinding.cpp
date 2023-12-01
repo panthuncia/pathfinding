@@ -2,6 +2,7 @@
 //
 
 #include "pathfinding.h"
+#include <chrono>
 #include <random>
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -18,9 +19,9 @@ Node generateRandomPoint(int width, int height) {
     return Node(distrX(eng), distrY(eng));
 }
 
-std::pair<double, double> rotateAndScale(Node pt, double radians, uint32_t h, uint32_t w, uint32_t h_new, uint32_t w_new) {
-    double x = pt.x;
-    double y = pt.y;
+std::pair<double, double> rotateAndScale(Node* pt, double radians, uint32_t h, uint32_t w, uint32_t h_new, uint32_t w_new) {
+    double x = pt->x;
+    double y = pt->y;
     double offset_x = h/2;
     double offset_y = w/2;
     double adjusted_x = x - offset_x;
@@ -37,7 +38,7 @@ std::pair<double, double> rotateAndScale(Node pt, double radians, uint32_t h, ui
 }
 
 void do_maps() {
-    Map map = Map(100, 100);
+    Map map = Map(1000, 1000);
     map.generate_obstacles(30, 100);
 
     //rotate map
@@ -48,29 +49,31 @@ void do_maps() {
 
     auto start = generateRandomPoint(map.width, map.height);
     auto goal = generateRandomPoint(map.width, map.height);
-    auto transformed_start_doubles = rotateAndScale(start, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
-    auto transformed_goal_doubles = rotateAndScale(goal, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
-    Node transformed_start = Node(transformed_start_doubles.first, transformed_start_doubles.second);
-    Node transformed_goal = Node(transformed_goal_doubles.first, transformed_goal_doubles.second);
+    auto transformed_start_doubles = rotateAndScale(&start, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
+    auto transformed_goal_doubles = rotateAndScale(&goal, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
     cout << map.data.size();
     AStarPathfindingStrategy solver;
-    auto path = solver.solve(rotated_map, transformed_start, transformed_goal);
+    auto time_start = std::chrono::high_resolution_clock::now();
+    auto path = solver.solve(rotated_map, rotated_map.getNode(transformed_start_doubles.first, transformed_start_doubles.second), rotated_map.getNode(transformed_goal_doubles.first, transformed_goal_doubles.second));
+    auto time_stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
+    cout << "Execution time: "+std::to_string(duration.count()) << endl;
     if (path.size() == 0) {
         cout << "start: " + std::to_string(start.x) + ", " + std::to_string(start.y) << std::endl;
         cout << "goal: " + std::to_string(goal.x) + ", " + std::to_string(goal.y) << std::endl;
-        cout << "transformed start: " + std::to_string(transformed_start.x) + ", " + std::to_string(transformed_start.y) << std::endl;
-        cout << "transformed goal: " + std::to_string(transformed_goal.x) + ", " + std::to_string(transformed_goal.y) << std::endl;
+        cout << "transformed start: " + std::to_string(transformed_start_doubles.first) + ", " + std::to_string(transformed_start_doubles.second) << std::endl;
+        cout << "transformed goal: " + std::to_string(transformed_goal_doubles.first) + ", " + std::to_string(transformed_goal_doubles.second) << std::endl;
         return;
     }
     std::vector<std::pair<double, double>> transformed_path;
     std::vector<std::pair<double, double>> un_transformed_path;
-    for (Node n : path) {
+    for (Node* n : path) {
         auto transformed_doubles = rotateAndScale(n, -map_angle_deg * (M_PI / 180), rotated_map.height, rotated_map.width, map.height, map.width);
         un_transformed_path.push_back(std::make_pair(transformed_doubles.first, transformed_doubles.second));
-        transformed_path.push_back(std::make_pair(n.x, n.y));
+        transformed_path.push_back(std::make_pair(n->x, n->y));
     }
     cout << "length:";
-    cout << un_transformed_path.size();
+    cout << un_transformed_path.size() << std::endl;
     displayGrid(map.data, map.width, map.height, un_transformed_path, "grid");
     displayGrid(rotated_map.data, rotated_map.width, rotated_map.height, transformed_path, "rotated grid");
     cv::waitKey(0); // Wait for a key press to close the window
@@ -84,13 +87,13 @@ int main()
 }
 
 void displayGrid(const std::vector<float>& grid, int width, int height, const std::vector<std::pair<double, double>>& path, const char* name) {
-    int cellSize = 3; // Size of each cell in the displayed image
+    int cellSize = 1; // Size of each cell in the displayed image
     cv::Mat image(height * cellSize, width * cellSize, CV_8UC3, cv::Scalar(255, 255, 255));
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int index = y * width + x;
-            if (grid[index] == 1.0f) {
+            if (grid[index] > 0.5f) {
                 cv::rectangle(image,
                     cv::Point(x * cellSize, y * cellSize),
                     cv::Point((x + 1) * cellSize, (y + 1) * cellSize),

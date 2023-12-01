@@ -1,22 +1,23 @@
 #pragma once
 #include <utility>
 #include <queue>
-#include <unordered_map>
+
 class Node {
 public:
-    uint32_t x, y;
-    bool operator==(const Node& other) const {
-        return x == other.x && y == other.y;
+    int x, y;
+    float gCost, hCost, fCost;
+    Node* parent;
+    std::vector<Node*> neighbors;
+    Node(int x, int y) : x(x), y(y), gCost(INFINITY), hCost(INFINITY), fCost(INFINITY), parent(nullptr) {}
+    Node() :gCost(INFINITY), hCost(INFINITY), fCost(INFINITY), parent(nullptr) {}
+
+    void calculateFCost() {
+        fCost = gCost + hCost;
     }
 };
 
-struct NodeHasher {
-    std::size_t operator()(const Node& k) const {
-        std::size_t h1 = std::hash<uint32_t>()(k.x);
-        std::size_t h2 = std::hash<uint32_t>()(k.y);
-
-        return h1 ^ h2;
+struct CompareNode {
+    bool operator()(Node* a, Node* b) {
+        return a->fCost > b->fCost;
     }
 };
-
-using NodeUnorderedMap = std::unordered_map<Node, Node, NodeHasher>;

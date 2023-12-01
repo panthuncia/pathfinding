@@ -5,7 +5,33 @@
 Map::Map(uint32_t map_width, uint32_t map_height) {
     height = map_height;
     width = map_width;
+    grid.resize(height, std::vector<Node>(width));
+
+    // Initialize nodes and their neighbors
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            grid[y][x] = Node(x, y);
+            addNeighbors(x, y);
+        }
+    }
 }
+void Map::addNeighbors(int x, int y) {
+    std::vector<std::pair<int, int>> neighborOffsets = { {1, 0}, {0, 1}, {-1, 0}, {0, -1}, {1, 1}, {1, -1}, {-1, -1}, {-1, 1} }; // 8-directional
+
+    for (auto& offset : neighborOffsets) {
+        int nx = x + offset.first;
+        int ny = y + offset.second;
+
+        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+            grid[y][x].neighbors.push_back(&grid[ny][nx]);
+        }
+    }
+}
+
+Node* Map::getNode(int x, int y) {
+    return &grid[y][x];
+}
+
 void Map::generate_obstacles(int num_obstacles, int max_blob_size) {
     data = std::vector<float>(width * height, 0.0f); // Initialize grid with zeros
 
@@ -72,4 +98,14 @@ Map Map::rotate(double map_angle_deg) {
     Map new_map = Map(newWidth, newHeight);
     new_map.data = rotated_vector;
     return new_map;
+}
+
+bool Map::isWalkable(int x, int y) {
+    if (x >= 0 and y >= 0 and x < width and y < height and data[gridToIndex(x, y)] < 0.5)
+        return true;
+    return false;
+}
+
+int Map::gridToIndex(uint32_t x, uint32_t y) {
+    return y * width + x;
 }
