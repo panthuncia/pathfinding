@@ -16,7 +16,7 @@ Map::Map(uint32_t map_width, uint32_t map_height) {
     }
 }
 void Map::addNeighbors(int x, int y) {
-    std::vector<std::pair<int, int>> neighborOffsets = { {1, 0}, {0, 1}, {-1, 0}, {0, -1}, {1, 1}, {1, -1}, {-1, -1}, {-1, 1} }; // 8-directional
+    std::vector<std::pair<int, int>> neighborOffsets = { {1, 0}, {0, 1}, {-1, 0}, /*{0, -1},*/ {1, 1}, {1, -1}, {-1, -1}, {-1, 1}}; // 8-directional
 
     for (auto& offset : neighborOffsets) {
         int nx = x + offset.first;

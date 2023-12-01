@@ -6,4 +6,4 @@
 #include <iostream>
 #include <vector>
 #include "node.h"
-void displayGrid(const std::vector<float>& grid, int width, int height, const std::vector<std::pair<double, double>>& path, const char* name);
+void displayGrid(const std::vector<float>& grid, int width, int height, const std::vector<std::pair<double, double>>& path, float windAngle, const char* name);

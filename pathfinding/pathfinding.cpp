@@ -38,12 +38,12 @@ std::pair<double, double> rotateAndScale(Node* pt, double radians, uint32_t h, u
 }
 
 void do_maps() {
-    Map map = Map(1000, 1000);
-    map.generate_obstacles(30, 100);
+    Map map = Map(300, 300);
+    map.generate_obstacles(0, 300);
 
     //rotate map
-    double wind_angle_deg = 30;
-    double map_angle_deg = 90 + wind_angle_deg;
+    double wind_angle_deg = 10;
+    double map_angle_deg = 90-wind_angle_deg;
     Map rotated_map = map.rotate(map_angle_deg);
 
 
@@ -74,8 +74,8 @@ void do_maps() {
     }
     cout << "length:";
     cout << un_transformed_path.size() << std::endl;
-    displayGrid(map.data, map.width, map.height, un_transformed_path, "grid");
-    displayGrid(rotated_map.data, rotated_map.width, rotated_map.height, transformed_path, "rotated grid");
+    displayGrid(map.data, map.width, map.height, un_transformed_path, wind_angle_deg, "grid");
+    displayGrid(rotated_map.data, rotated_map.width, rotated_map.height, transformed_path, 90, "rotated grid");
     cv::waitKey(0); // Wait for a key press to close the window
 }
 
@@ -86,7 +86,7 @@ int main()
     }
 }
 
-void displayGrid(const std::vector<float>& grid, int width, int height, const std::vector<std::pair<double, double>>& path, const char* name) {
+void displayGrid(const std::vector<float>& grid, int width, int height, const std::vector<std::pair<double, double>>& path, float windAngleDeg, const char* name) {
     int cellSize = 1; // Size of each cell in the displayed image
     cv::Mat image(height * cellSize, width * cellSize, CV_8UC3, cv::Scalar(255, 255, 255));
 
@@ -123,6 +123,16 @@ void displayGrid(const std::vector<float>& grid, int width, int height, const st
         cellSize * 2,
         cv::Scalar(255, 0, 0), // Blue color for end
         cv::FILLED);
+
+    cv::Point gridCenter(width * cellSize / 2, height * cellSize / 2);
+    // Arrow parameters
+    auto windAngle = fmod((windAngleDeg+180), 360) * M_PI / 180;
+    int arrowLength = std::min(width, height) * cellSize / 4; // Adjust the length as needed
+    cv::Point arrowEnd(
+        gridCenter.x + arrowLength * cos(windAngle),
+        gridCenter.y - arrowLength * sin(windAngle) // Negative because y-coordinates increase downwards
+    );
+    cv::arrowedLine(image, gridCenter, arrowEnd, cv::Scalar(0, 255, 0), 2, 8, 0, 0.2);
 
     cv::imshow(name, image);
 }

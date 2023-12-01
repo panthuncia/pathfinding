@@ -15,10 +15,10 @@ bool isCellWalkable(Map map, uint32_t x, uint32_t y) {
 	return false;
 }
 
-float turn_penalty(Node previous, Node current, Node next) {
-	if (current.x - previous.x != 0 && next.x - current.x != 0) {
-		double slope1 = (current.y - previous.y) / (current.x - previous.x);
-		double slope2 = (next.y - current.y) / (next.x - current.x);
+float turn_penalty(Node* previous, Node* current, Node* next) {
+	if (current->x - previous->x != 0 && next->x - current->x != 0) {
+		double slope1 = (current->y - previous->y) / (current->x - previous->x);
+		double slope2 = (next->y - current->y) / (next->x - current->x);
 		if (double_equals(slope1, slope2)) {
 			return 0;
 		}
@@ -27,7 +27,7 @@ float turn_penalty(Node previous, Node current, Node next) {
 		}
 	}
 	else {
-		if (previous.x == current.x == next.x || previous.y == current.y == next.y) {
+		if (previous->x == current->x == next->x || previous->y == current->y == next->y) {
 			return 0;
 		}
 		else {
@@ -68,8 +68,11 @@ std::vector<Node*> AStarPathfindingStrategy::solve(Map& map, Node* start, Node* 
 			if (closedSet.contains(neighbor) || !map.isWalkable(neighbor->x, neighbor->y)) {
 				continue;
 			}
-
-			float tentativeGCost = currentNode->gCost + heuristic(currentNode, neighbor);
+			float currentTurnPenalty = 0;
+			if (currentNode->parent != nullptr) {
+				currentTurnPenalty = turn_penalty(currentNode->parent, currentNode, neighbor);
+			}
+			float tentativeGCost = currentNode->gCost + heuristic(currentNode, neighbor)+currentTurnPenalty;
 			if (tentativeGCost < neighbor->gCost) {
 				neighbor->parent = currentNode;
 				neighbor->gCost = tentativeGCost;
