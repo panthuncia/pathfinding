@@ -40,7 +40,7 @@ float heuristic(Node* a, Node* b) {
 	return std::hypot(a->x - b->x, a->y - b->y);
 }
 
-std::vector<Node*> AStarPathfindingStrategy::solve(Map& map, Node* start, Node* goal, double wind_angle_rad, double no_go_angle) {
+std::vector<Node*> AStarPathfindingStrategy::solve(Map& map, Node* start, Node* goal, double wind_angle_rad, double no_go_angle_rad) {
 	std::priority_queue<Node*, std::vector<Node*>, CompareNode> openSet;
 	std::unordered_set<Node*> closedSet;
 	start->gCost = 0;

@@ -8,6 +8,8 @@
 #include <math.h>
 #include <opencv2/opencv.hpp>
 #include "map.h"
+#include "linear_raycast_pathfinding_strategy.h"
+#include "one_tack_pathfinding_strategy.h"
 #include "astar_pathfinding_strategy.h"
 using namespace std;
 Node generateRandomPoint(int width, int height) {
@@ -35,6 +37,25 @@ std::pair<double, double> rotateAndScale(Node* pt, double radians, uint32_t h, u
     double x1_new = qx + xoffset;
     double y1_new = qy + yoffset;
     return std::make_pair(x1_new, y1_new);
+}
+
+std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node start, Node goal) {
+    //start with linear solver
+    LinearRaycastPathfindingStrategy linearSolver;
+    auto path = linearSolver.solve(map, map.getNode(start.x, start.y), map.getNode(goal.x, goal.y), wind_angle_deg * (M_PI / 180), 30 * (M_PI / 180));
+    //return path;
+    if (path.size() > 0)
+        return path;
+    //if that fails, try one tack
+    OneTackPathfindingStrategy oneTackSolver;
+    path = oneTackSolver.solve(map, map.getNode(start.x, start.y), map.getNode(goal.x, goal.y), wind_angle_deg * (M_PI / 180), 30 * (M_PI / 180));
+    if (path.size() > 0)
+        return path;
+    //if that fails, fall back to pathfinding
+    double map_angle_deg = 90 - wind_angle_deg;
+    Map rotated_map = map.rotate(map_angle_deg);
+    auto transformed_start_doubles = rotateAndScale(&start, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
+    auto transformed_goal_doubles = rotateAndScale(&goal, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
 }
 
 void do_maps() {
