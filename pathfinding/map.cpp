@@ -106,6 +106,11 @@ bool Map::isWalkable(int x, int y) {
     return false;
 }
 
+bool Map::isBlocked(int x, int y) {
+    if (x >= 0 and y >= 0 and x < width and y < height and data[gridToIndex(x, y)] < 0.5)
+        return false;
+    return true;
+}
 int Map::gridToIndex(uint32_t x, uint32_t y) {
     return y * width + x;
 }

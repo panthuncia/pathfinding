@@ -12,6 +12,7 @@
 #include "linear_raycast_pathfinding_strategy.h"
 #include "one_tack_pathfinding_strategy.h"
 #include "astar_pathfinding_strategy.h"
+#include "jump_point_search_pathfinding_strategy.h"
 
 #define NOGO_ANGLE_DEGREES 30
 #define M_TAU 2*M_PI

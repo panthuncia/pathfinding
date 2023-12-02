@@ -9,6 +9,7 @@ public:
 	Node* getNode(int x, int y);
 	void generate_obstacles(int num_obstacles, int max_blob_size);
 	bool isWalkable(int x, int y);
+	bool isBlocked(int x, int y);
 	int gridToIndex(uint32_t x, uint32_t y);
 	//std::vector<Node*> getNeighbors(Node* node);
 	uint32_t width;

@@ -6,16 +6,7 @@
 #include <chrono>
 #include <string>
 
-int gridToIndex(Map map, uint32_t x, uint32_t y) {
-	return y * map.width + x;
-}
-bool isCellWalkable(Map map, uint32_t x, uint32_t y) {
-	if (x >= 0 and y >= 0 and x < map.width and y < map.height and map.data[gridToIndex(map, x, y)] <0.5)
-		return true;
-	return false;
-}
-
-float turn_penalty(Node* previous, Node* current, Node* next) {
+float AStarPathfindingStrategy::turn_penalty(Node* previous, Node* current, Node* next) {
 	if (current->x - previous->x != 0 && next->x - current->x != 0) {
 		double slope1 = (current->y - previous->y) / (current->x - previous->x);
 		double slope2 = (next->y - current->y) / (next->x - current->x);
@@ -36,7 +27,7 @@ float turn_penalty(Node* previous, Node* current, Node* next) {
 	}
 }
 
-float heuristic(Node* a, Node* b) {
+float AStarPathfindingStrategy::heuristic(Node* a, Node* b) {
 	return std::hypot(a->x - b->x, a->y - b->y);
 }
 
