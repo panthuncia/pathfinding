@@ -51,7 +51,6 @@ std::vector<Node*> AStarPathfindingStrategy::solve(Map& map, Node* start, Node* 
 	while (!openSet.empty()) {
 		Node* currentNode = openSet.top();
 		openSet.pop();
-
 		if (currentNode == goal) {
 			std::vector<Node*> path;
 			while (currentNode != nullptr) {
@@ -59,11 +58,11 @@ std::vector<Node*> AStarPathfindingStrategy::solve(Map& map, Node* start, Node* 
 				currentNode = currentNode->parent;
 			}
 			std::reverse(path.begin(), path.end());
+
 			return path;
 		}
 
 		closedSet.insert(currentNode);
-
 		for (Node* neighbor : currentNode->neighbors) {
 			if (closedSet.contains(neighbor) || !map.isWalkable(neighbor->x, neighbor->y)) {
 				continue;

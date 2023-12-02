@@ -7,10 +7,15 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <opencv2/opencv.hpp>
+#include <opencv2/core/utils/logger.hpp>
 #include "map.h"
 #include "linear_raycast_pathfinding_strategy.h"
 #include "one_tack_pathfinding_strategy.h"
 #include "astar_pathfinding_strategy.h"
+
+#define NOGO_ANGLE_DEGREES 30
+#define M_TAU 2*M_PI
+
 using namespace std;
 Node generateRandomPoint(int width, int height) {
     std::random_device rd;
@@ -20,6 +25,14 @@ Node generateRandomPoint(int width, int height) {
 
     return Node(distrX(eng), distrY(eng));
 }
+
+int randomAngleDeg() {
+    std::random_device rd;
+    std::mt19937 eng(rd());
+    std::uniform_int_distribution<> distr(0, 359);
+    return distr(eng);
+}
+
 
 std::pair<double, double> rotateAndScale(Node* pt, double radians, uint32_t h, uint32_t w, uint32_t h_new, uint32_t w_new) {
     double x = pt->x;
@@ -39,76 +52,119 @@ std::pair<double, double> rotateAndScale(Node* pt, double radians, uint32_t h, u
     return std::make_pair(x1_new, y1_new);
 }
 
-std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node start, Node goal) {
-    //start with linear solver
-    LinearRaycastPathfindingStrategy linearSolver;
-    auto path = linearSolver.solve(map, map.getNode(start.x, start.y), map.getNode(goal.x, goal.y), wind_angle_deg * (M_PI / 180), 30 * (M_PI / 180));
-    //return path;
-    if (path.size() > 0)
-        return path;
-    //if that fails, try one tack
-    OneTackPathfindingStrategy oneTackSolver;
-    path = oneTackSolver.solve(map, map.getNode(start.x, start.y), map.getNode(goal.x, goal.y), wind_angle_deg * (M_PI / 180), 30 * (M_PI / 180));
-    if (path.size() > 0)
-        return path;
-    //if that fails, fall back to pathfinding
-    double map_angle_deg = 90 - wind_angle_deg;
-    Map rotated_map = map.rotate(map_angle_deg);
-    auto transformed_start_doubles = rotateAndScale(&start, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
-    auto transformed_goal_doubles = rotateAndScale(&goal, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
+std::vector<std::pair<double, double>> rotate_path_doubles(std::vector<Node*> path, uint32_t oldHeight, uint32_t oldWidth, uint32_t newHeight, uint32_t newWidth, double angle_deg) {
+    std::vector<std::pair<double, double>> transformed_path;
+    for (Node* n : path) {
+        auto transformed_doubles = rotateAndScale(n, -angle_deg * (M_PI / 180), oldHeight, oldWidth, newHeight, newWidth);
+        transformed_path.push_back(std::make_pair(transformed_doubles.first, transformed_doubles.second));
+    }
+    return transformed_path;
 }
 
-void do_maps() {
-    Map map = Map(1000, 1000);
-    map.generate_obstacles(90, 300);
+std::vector<std::pair<double, double>> path_to_doubles(std::vector<Node*> path) {
+    std::vector<std::pair<double, double>> doubles;
+    for (Node* n : path) {
+        doubles.push_back(std::make_pair(n->x, n->y));
+    }
+    return doubles;
+}
 
-    //rotate map
-    double wind_angle_deg = 10;
-    double map_angle_deg = 90-wind_angle_deg;
+
+bool is_in_nogo(Node* start, Node* goal, float wind_angle_rad, float nogo_angle_rad) {
+    auto a = goal->x - start->x;
+    auto b = goal->y - start->y;
+    double angle_a_b = fmod(atan2(b, a) + M_TAU, M_TAU);
+    std::cout << angle_a_b << std::endl;
+
+    double opposite_angle = fmod(angle_a_b + M_PI, M_TAU);
+
+    double difference = abs(wind_angle_rad - opposite_angle);
+    if (difference > M_PI) {
+        difference = M_TAU - difference;
+    }
+    std::cout << difference << std::endl;
+    return(difference < nogo_angle_rad);
+}
+
+std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node start, Node goal) {
+    double wind_angle_rad = wind_angle_deg * (M_PI / 180);
+    double nogo_angle_rad = NOGO_ANGLE_DEGREES * (M_PI / 180);
+    bool wind_blocked = false;
+    //start with linear solver
+    auto start_node = map.getNode(start.x, start.y);
+    auto goal_node = map.getNode(goal.x, goal.y);
+    if (!is_in_nogo(start_node, goal_node, wind_angle_rad, nogo_angle_rad)) {
+        LinearRaycastPathfindingStrategy linearSolver;
+            auto path = linearSolver.solve(map, map.getNode(start.x, start.y), map.getNode(goal.x, goal.y), wind_angle_rad, nogo_angle_rad);
+            //return path;
+            if (path.size() > 0) {
+                displayGrid(map.data, map.width, map.height, path_to_doubles(path), wind_angle_deg, "grid");
+                    return path;
+            }
+    }
+    else {
+        wind_blocked = true;
+    }
+    //if that fails, try one tack
+    if (wind_blocked) {
+        OneTackPathfindingStrategy oneTackSolver;
+        auto path = oneTackSolver.solve(map, map.getNode(start.x, start.y), map.getNode(goal.x, goal.y), wind_angle_rad, nogo_angle_rad);
+        if (path.size() > 0) {
+            displayGrid(map.data, map.width, map.height, path_to_doubles(path), wind_angle_deg, "grid");
+            return path;
+        }
+    }
+    //if both fail, fall back to pathfinding
+    //rotate map to enable wind restriction
+    double map_angle_deg = -90 + wind_angle_deg;
     Map rotated_map = map.rotate(map_angle_deg);
-
-
-    auto start = generateRandomPoint(map.width, map.height);
-    auto goal = generateRandomPoint(map.width, map.height);
     auto transformed_start_doubles = rotateAndScale(&start, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
     auto transformed_goal_doubles = rotateAndScale(&goal, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
-    cout << map.data.size();
+
+    //create solver and solve
     AStarPathfindingStrategy solver;
     auto time_start = std::chrono::high_resolution_clock::now();
+    cout << "start: " + to_string(transformed_start_doubles.first) + ", " + to_string(transformed_start_doubles.second) << endl;
+    cout << "goal: " + to_string(transformed_goal_doubles.first) + ", " + to_string(transformed_goal_doubles.second) << endl;
+
     auto path = solver.solve(rotated_map, rotated_map.getNode(transformed_start_doubles.first, transformed_start_doubles.second), rotated_map.getNode(transformed_goal_doubles.first, transformed_goal_doubles.second));
     auto time_stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
-    cout << "Execution time: "+std::to_string(duration.count()) << endl;
+
+    //diagnostics
+    cout << "Execution time: " + std::to_string(duration.count()) << endl;
     if (path.size() == 0) {
         cout << "start: " + std::to_string(start.x) + ", " + std::to_string(start.y) << std::endl;
         cout << "goal: " + std::to_string(goal.x) + ", " + std::to_string(goal.y) << std::endl;
         cout << "transformed start: " + std::to_string(transformed_start_doubles.first) + ", " + std::to_string(transformed_start_doubles.second) << std::endl;
         cout << "transformed goal: " + std::to_string(transformed_goal_doubles.first) + ", " + std::to_string(transformed_goal_doubles.second) << std::endl;
-        return;
+        return path;
     }
-    std::vector<std::pair<double, double>> transformed_path;
-    std::vector<std::pair<double, double>> un_transformed_path;
-    for (Node* n : path) {
-        auto transformed_doubles = rotateAndScale(n, -map_angle_deg * (M_PI / 180), rotated_map.height, rotated_map.width, map.height, map.width);
-        un_transformed_path.push_back(std::make_pair(transformed_doubles.first, transformed_doubles.second));
-        transformed_path.push_back(std::make_pair(n->x, n->y));
-    }
-    cout << "length:";
-    cout << un_transformed_path.size() << std::endl;
-    displayGrid(map.data, map.width, map.height, un_transformed_path, wind_angle_deg, "grid");
-    displayGrid(rotated_map.data, rotated_map.width, rotated_map.height, transformed_path, 90, "rotated grid");
+    displayGrid(map.data, map.width, map.height, rotate_path_doubles(path, rotated_map.height, rotated_map.width, map.height, map.width, map_angle_deg), wind_angle_deg, "grid");
+    displayGrid(rotated_map.data, rotated_map.width, rotated_map.height, path_to_doubles(path), 90, "rotated grid");
+    return {};
+}
+
+void do_maps() {
+    Map map = Map(100, 100);
+    map.generate_obstacles(30, 100);
+    double wind_angle_deg = 10;// randomAngleDeg();
+    auto start = generateRandomPoint(map.width, map.height);
+    auto goal = generateRandomPoint(map.width, map.height);
+    find_solution(map, wind_angle_deg, start, goal);
     cv::waitKey(0); // Wait for a key press to close the window
 }
 
 int main()
 {
+    cv::utils::logging::setLogLevel(cv::utils::logging::LogLevel::LOG_LEVEL_SILENT);
     while (true) {
         do_maps();
     }
 }
 
 void displayGrid(const std::vector<float>& grid, int width, int height, const std::vector<std::pair<double, double>>& path, float windAngleDeg, const char* name) {
-    int cellSize = 1; // Size of each cell in the displayed image
+    int cellSize = 5; // Size of each cell in the displayed image
     cv::Mat image(height * cellSize, width * cellSize, CV_8UC3, cv::Scalar(255, 255, 255));
 
     for (int y = 0; y < height; ++y) {
@@ -147,13 +203,14 @@ void displayGrid(const std::vector<float>& grid, int width, int height, const st
 
     cv::Point gridCenter(width * cellSize / 2, height * cellSize / 2);
     // Arrow parameters
-    auto windAngle = fmod((windAngleDeg+180), 360) * M_PI / 180;
+    auto windAngle = fmod((-windAngleDeg+180), 360) * M_PI / 180;
     int arrowLength = std::min(width, height) * cellSize / 4; // Adjust the length as needed
     cv::Point arrowEnd(
         gridCenter.x + arrowLength * cos(windAngle),
         gridCenter.y - arrowLength * sin(windAngle) // Negative because y-coordinates increase downwards
     );
     cv::arrowedLine(image, gridCenter, arrowEnd, cv::Scalar(0, 255, 0), 2, 8, 0, 0.2);
-
-    cv::imshow(name, image);
+    cv::Mat flipped;
+    cv::flip(image, flipped, 0);
+    cv::imshow(name, flipped);
 }
