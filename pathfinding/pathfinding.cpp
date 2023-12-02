@@ -118,22 +118,27 @@ std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node start, Nod
     //if both fail, fall back to pathfinding
     //rotate map to enable wind restriction
     double map_angle_deg = -90 + wind_angle_deg;
+    auto rotate_time_start = std::chrono::high_resolution_clock::now();
     Map rotated_map = map.rotate(map_angle_deg);
+    auto rotate_time_stop = std::chrono::high_resolution_clock::now();
+    auto rotate_duration = std::chrono::duration_cast<std::chrono::milliseconds>(rotate_time_stop - rotate_time_start);
+    cout << "full rotate time: " + std::to_string(rotate_duration.count()) << endl;
+
+
     auto transformed_start_doubles = rotateAndScale(&start, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
     auto transformed_goal_doubles = rotateAndScale(&goal, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
 
     //create solver and solve
     AStarPathfindingStrategy solver;
-    auto time_start = std::chrono::high_resolution_clock::now();
     cout << "start: " + to_string(transformed_start_doubles.first) + ", " + to_string(transformed_start_doubles.second) << endl;
     cout << "goal: " + to_string(transformed_goal_doubles.first) + ", " + to_string(transformed_goal_doubles.second) << endl;
-
+    auto time_start = std::chrono::high_resolution_clock::now();
     auto path = solver.solve(rotated_map, rotated_map.getNode(transformed_start_doubles.first, transformed_start_doubles.second), rotated_map.getNode(transformed_goal_doubles.first, transformed_goal_doubles.second));
     auto time_stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
 
     //diagnostics
-    cout << "Execution time: " + std::to_string(duration.count()) << endl;
+    cout << "Search time: " + std::to_string(duration.count()) << endl;
     if (path.size() == 0) {
         cout << "start: " + std::to_string(start.x) + ", " + std::to_string(start.y) << std::endl;
         cout << "goal: " + std::to_string(goal.x) + ", " + std::to_string(goal.y) << std::endl;
@@ -147,12 +152,28 @@ std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node start, Nod
 }
 
 void do_maps() {
-    Map map = Map(100, 100);
-    map.generate_obstacles(30, 100);
+    Map map = Map(1000, 1000);
+
+    map.generate_obstacles(300, 1000);
+
+    cv::Mat grid = cv::Mat(map.max_dim, map.max_dim, CV_32FC1, map.data->data());
+    cv::imshow("image", grid);
+
+    //displayGrid(map.data, map.max_dim, map.max_dim, {}, 0, "grid");
+
+
+
     double wind_angle_deg = 10;// randomAngleDeg();
-    auto start = generateRandomPoint(map.width, map.height);
-    auto goal = generateRandomPoint(map.width, map.height);
-    find_solution(map, wind_angle_deg, start, goal);
+    double map_angle_deg = -90 + wind_angle_deg;
+    auto rotate_time_start = std::chrono::high_resolution_clock::now();
+    Map rotated_map = map.rotate(map_angle_deg);
+    auto rotate_time_stop = std::chrono::high_resolution_clock::now();
+    auto rotate_duration = std::chrono::duration_cast<std::chrono::milliseconds>(rotate_time_stop - rotate_time_start);
+    cout << "full rotate time: " + std::to_string(rotate_duration.count()) << endl;
+    displayGrid(rotated_map.data, rotated_map.max_dim, rotated_map.max_dim, {}, 0, "rotated grid");
+    //auto start = generateRandomPoint(map.width, map.height);
+    //auto goal = generateRandomPoint(map.width, map.height);
+    //find_solution(map, wind_angle_deg, start, goal);
     cv::waitKey(0); // Wait for a key press to close the window
 }
 
@@ -164,14 +185,14 @@ int main()
     }
 }
 
-void displayGrid(const std::vector<float>& grid, int width, int height, const std::vector<std::pair<double, double>>& path, float windAngleDeg, const char* name) {
-    int cellSize = 5; // Size of each cell in the displayed image
+void displayGrid(std::shared_ptr<std::vector<float>> grid, int width, int height, const std::vector<std::pair<double, double>>& path, float windAngleDeg, const char* name) {
+    int cellSize = 1; // Size of each cell in the displayed image
     cv::Mat image(height * cellSize, width * cellSize, CV_8UC3, cv::Scalar(255, 255, 255));
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int index = y * width + x;
-            if (grid[index] > 0.5f) {
+            if (grid->at(index) > 0.5f) {
                 cv::rectangle(image,
                     cv::Point(x * cellSize, y * cellSize),
                     cv::Point((x + 1) * cellSize, (y + 1) * cellSize),
@@ -182,25 +203,29 @@ void displayGrid(const std::vector<float>& grid, int width, int height, const st
     }
 
     // Draw the path as a line
-    for (size_t i = 0; i < path.size() - 1; ++i) {
-        cv::Point pt1(path[i].first * cellSize + cellSize / 2, path[i].second * cellSize + cellSize / 2);
-        cv::Point pt2(path[i + 1].first * cellSize + cellSize / 2, path[i + 1].second * cellSize + cellSize / 2);
-        cv::line(image, pt1, pt2, cv::Scalar(0, 0, 255), 2); // Red color for path
+    if (path.size() > 0) {
+        for (size_t i = 0; i < path.size() - 1; ++i) {
+            cv::Point pt1(path[i].first * cellSize + cellSize / 2, path[i].second * cellSize + cellSize / 2);
+            cv::Point pt2(path[i + 1].first * cellSize + cellSize / 2, path[i + 1].second * cellSize + cellSize / 2);
+            cv::line(image, pt1, pt2, cv::Scalar(0, 0, 255), 2); // Red color for path
+        }
     }
 
     // Draw start position as a green circle
-    cv::circle(image,
-        cv::Point(path[0].first * cellSize + cellSize / 2, path[0].second * cellSize + cellSize / 2),
-        cellSize * 2,
-        cv::Scalar(0, 255, 0), // Green color for start
-        cv::FILLED);
+    if (path.size() >= 2) {
+        cv::circle(image,
+            cv::Point(path[0].first * cellSize + cellSize / 2, path[0].second * cellSize + cellSize / 2),
+            cellSize * 2,
+            cv::Scalar(0, 255, 0), // Green color for start
+            cv::FILLED);
 
-    // Draw end position as a blue circle
-    cv::circle(image,
-        cv::Point(path.back().first * cellSize + cellSize / 2, path.back().second * cellSize + cellSize / 2),
-        cellSize * 2,
-        cv::Scalar(255, 0, 0), // Blue color for end
-        cv::FILLED);
+        // Draw end position as a blue circle
+        cv::circle(image,
+            cv::Point(path.back().first * cellSize + cellSize / 2, path.back().second * cellSize + cellSize / 2),
+            cellSize * 2,
+            cv::Scalar(255, 0, 0), // Blue color for end
+            cv::FILLED);
+    }
 
     cv::Point gridCenter(width * cellSize / 2, height * cellSize / 2);
     // Arrow parameters
