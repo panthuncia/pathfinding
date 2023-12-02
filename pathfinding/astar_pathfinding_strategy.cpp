@@ -6,7 +6,7 @@
 #include <chrono>
 #include <string>
 
-float AStarPathfindingStrategy::turn_penalty(Node* previous, Node* current, Node* next) {
+float AStarPathfindingStrategy::turn_penalty(std::shared_ptr<Node> previous, std::shared_ptr<Node> current, std::shared_ptr<Node> next) {
 	if (current->x - previous->x != 0 && next->x - current->x != 0) {
 		double slope1 = (current->y - previous->y) / (current->x - previous->x);
 		double slope2 = (next->y - current->y) / (next->x - current->x);
@@ -27,23 +27,23 @@ float AStarPathfindingStrategy::turn_penalty(Node* previous, Node* current, Node
 	}
 }
 
-float AStarPathfindingStrategy::heuristic(Node* a, Node* b) {
+float AStarPathfindingStrategy::heuristic(std::shared_ptr<Node> a, std::shared_ptr<Node> b) {
 	return std::hypot(a->x - b->x, a->y - b->y);
 }
 
-std::vector<Node*> AStarPathfindingStrategy::solve(Map& map, Node* start, Node* goal, double wind_angle_rad, double no_go_angle_rad) {
-	std::priority_queue<Node*, std::vector<Node*>, CompareNode> openSet;
-	std::unordered_set<Node*> closedSet;
+std::vector<std::shared_ptr<Node>> AStarPathfindingStrategy::solve(Map& map, std::shared_ptr<Node> start, std::shared_ptr<Node> goal, double wind_angle_rad, double no_go_angle_rad) {
+	std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>, CompareNode> openSet;
+	std::unordered_set<std::shared_ptr<Node>> closedSet;
 	start->gCost = 0;
 	start->hCost = heuristic(start, goal);
 	start->calculateFCost();
 	openSet.push(start);
 
 	while (!openSet.empty()) {
-		Node* currentNode = openSet.top();
+		std::shared_ptr<Node> currentNode = openSet.top();
 		openSet.pop();
 		if (currentNode == goal) {
-			std::vector<Node*> path;
+			std::vector<std::shared_ptr<Node>> path;
 			while (currentNode != nullptr) {
 				path.push_back(currentNode);
 				currentNode = currentNode->parent;
@@ -54,7 +54,7 @@ std::vector<Node*> AStarPathfindingStrategy::solve(Map& map, Node* start, Node* 
 		}
 
 		closedSet.insert(currentNode);
-		for (Node* neighbor : currentNode->neighbors) {
+		for (std::shared_ptr<Node> neighbor : currentNode->neighbors) {
 			if (closedSet.contains(neighbor) || !map.isWalkable(neighbor->x, neighbor->y)) {
 				continue;
 			}
@@ -73,5 +73,5 @@ std::vector<Node*> AStarPathfindingStrategy::solve(Map& map, Node* start, Node* 
 		}
 	}
 
-	return std::vector<Node*>(); // Return an empty path if no path is found
+	return std::vector<std::shared_ptr<Node>>(); // Return an empty path if no path is found
 }

@@ -6,7 +6,7 @@
 #include <chrono>
 #include <string>
 
-float JPSPathfindingStrategy::turn_penalty(Node* previous, Node* current, Node* next) {
+float JPSPathfindingStrategy::turn_penalty(std::shared_ptr<Node> previous, std::shared_ptr<Node> current, std::shared_ptr<Node> next) {
 	if (current->x - previous->x != 0 && next->x - current->x != 0) {
 		double slope1 = (current->y - previous->y) / (current->x - previous->x);
 		double slope2 = (next->y - current->y) / (next->x - current->x);
@@ -27,11 +27,11 @@ float JPSPathfindingStrategy::turn_penalty(Node* previous, Node* current, Node* 
 	}
 }
 
-float JPSPathfindingStrategy::heuristic(Node* a, Node* b) {
+float JPSPathfindingStrategy::heuristic(std::shared_ptr<Node> a, std::shared_ptr<Node> b) {
 	return std::hypot(a->x - b->x, a->y - b->y);
 }
 
-Node* JPSPathfindingStrategy::jumpU(Map& graph, int x, int y, int ex, int ey) {
+std::shared_ptr<Node> JPSPathfindingStrategy::jumpU(Map& graph, int x, int y, int ex, int ey) {
 	while (true) {
 		y += 1;
 		if (graph.isBlocked(x, y - 1)) {
@@ -49,7 +49,7 @@ Node* JPSPathfindingStrategy::jumpU(Map& graph, int x, int y, int ex, int ey) {
 	}
 }
 
-Node* JPSPathfindingStrategy::jumpD(Map& graph, int x, int y, int ex, int ey) {
+std::shared_ptr<Node> JPSPathfindingStrategy::jumpD(Map& graph, int x, int y, int ex, int ey) {
 	while (true) {
 		y -= 1;
 		if (graph.isBlocked(x, y)) {
@@ -67,7 +67,7 @@ Node* JPSPathfindingStrategy::jumpD(Map& graph, int x, int y, int ex, int ey) {
 	}
 }
 
-Node* JPSPathfindingStrategy::jumpR(Map& graph, int x, int y, int ex, int ey) {
+std::shared_ptr<Node> JPSPathfindingStrategy::jumpR(Map& graph, int x, int y, int ex, int ey) {
 	while (true) {
 		x += 1;
 		if (graph.isBlocked(x - 1, y)) {
@@ -85,7 +85,7 @@ Node* JPSPathfindingStrategy::jumpR(Map& graph, int x, int y, int ex, int ey) {
 	}
 }
 
-Node* JPSPathfindingStrategy::jumpL(Map& graph, int x, int y, int ex, int ey) {
+std::shared_ptr<Node> JPSPathfindingStrategy::jumpL(Map& graph, int x, int y, int ex, int ey) {
 	while (true) {
 		x -= 1;
 		if (graph.isBlocked(x, y)) {
@@ -103,7 +103,7 @@ Node* JPSPathfindingStrategy::jumpL(Map& graph, int x, int y, int ex, int ey) {
 	}
 }
 
-Node* JPSPathfindingStrategy::jumpUR(Map& graph, int x, int y, int ex, int ey) {
+std::shared_ptr<Node> JPSPathfindingStrategy::jumpUR(Map& graph, int x, int y, int ex, int ey) {
 	while (true) {
 		x += 1;
 		y += 1;
@@ -115,7 +115,7 @@ Node* JPSPathfindingStrategy::jumpUR(Map& graph, int x, int y, int ex, int ey) {
 	}
 }
 
-Node* JPSPathfindingStrategy::jumpUL(Map& graph, int x, int y, int ex, int ey) {
+std::shared_ptr<Node> JPSPathfindingStrategy::jumpUL(Map& graph, int x, int y, int ex, int ey) {
 	while (true) {
 		x -= 1;
 		y += 1;
@@ -127,7 +127,7 @@ Node* JPSPathfindingStrategy::jumpUL(Map& graph, int x, int y, int ex, int ey) {
 	}
 }
 
-Node* JPSPathfindingStrategy::jumpDR(Map& graph, int x, int y, int ex, int ey) {
+std::shared_ptr<Node> JPSPathfindingStrategy::jumpDR(Map& graph, int x, int y, int ex, int ey) {
 	while (true) {
 		x += 1;
 		y -= 1;
@@ -139,7 +139,7 @@ Node* JPSPathfindingStrategy::jumpDR(Map& graph, int x, int y, int ex, int ey) {
 	}
 }
 
-Node* JPSPathfindingStrategy::jumpDL(Map& graph, int x, int y, int ex, int ey) {
+std::shared_ptr<Node> JPSPathfindingStrategy::jumpDL(Map& graph, int x, int y, int ex, int ey) {
 	while (true) {
 		x -= 1;
 		y -= 1;
@@ -151,7 +151,7 @@ Node* JPSPathfindingStrategy::jumpDL(Map& graph, int x, int y, int ex, int ey) {
 	}
 }
 
-Node* JPSPathfindingStrategy::jump(Map& graph, int x, int y, int dx, int dy, int ex, int ey) {
+std::shared_ptr<Node> JPSPathfindingStrategy::jump(Map& graph, int x, int y, int dx, int dy, int ex, int ey) {
 	if (dx < 0) {
 		if (dy < 0) {
 			return jumpDL(graph, x, y, ex, ey);
@@ -184,8 +184,8 @@ Node* JPSPathfindingStrategy::jump(Map& graph, int x, int y, int dx, int dy, int
 	}
 
 }
-std::vector<Node*> JPSPathfindingStrategy::find_jump_points(Map& graph,Node* current, Node* end) {
-	std::vector<Node*> jump_points;
+std::vector<std::shared_ptr<Node>> JPSPathfindingStrategy::find_jump_points(Map& graph, std::shared_ptr<Node> current, std::shared_ptr<Node> end) {
+	std::vector<std::shared_ptr<Node>> jump_points;
 	for (auto p : jump_directions) {
 		auto new_jump_point = jump(graph, current->x, current->y, p.first, p.second, end->x, end->y);
 		if (new_jump_point != nullptr) {
@@ -196,19 +196,19 @@ std::vector<Node*> JPSPathfindingStrategy::find_jump_points(Map& graph,Node* cur
 	return jump_points;
 }
 
-std::vector<Node*> JPSPathfindingStrategy::solve(Map& map, Node* start, Node* goal, double wind_angle_rad, double no_go_angle_rad) {
-	std::priority_queue<Node*, std::vector<Node*>, CompareNode> openSet;
-	std::unordered_set<Node*> closedSet;
+std::vector<std::shared_ptr<Node>> JPSPathfindingStrategy::solve(Map& map, std::shared_ptr<Node> start, std::shared_ptr<Node> goal, double wind_angle_rad, double no_go_angle_rad) {
+	std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node>>, CompareNode> openSet;
+	std::unordered_set<std::shared_ptr<Node>> closedSet;
 	start->gCost = 0;
 	start->hCost = heuristic(start, goal);
 	start->calculateFCost();
 	openSet.push(start);
 
 	while (!openSet.empty()) {
-		Node* currentNode = openSet.top();
+		std::shared_ptr<Node> currentNode = openSet.top();
 		openSet.pop();
 		if (currentNode == goal) {
-			std::vector<Node*> path;
+			std::vector<std::shared_ptr<Node>> path;
 			while (currentNode != nullptr) {
 				path.push_back(currentNode);
 				currentNode = currentNode->parent;
@@ -219,7 +219,7 @@ std::vector<Node*> JPSPathfindingStrategy::solve(Map& map, Node* start, Node* go
 		}
 
 		closedSet.insert(currentNode);
-		for (Node* neighbor : find_jump_points(map, currentNode, goal)) {
+		for (std::shared_ptr<Node> neighbor : find_jump_points(map, currentNode, goal)) {
 			if (closedSet.contains(neighbor) || !map.isWalkable(neighbor->x, neighbor->y)) {
 				continue;
 			}
@@ -238,5 +238,5 @@ std::vector<Node*> JPSPathfindingStrategy::solve(Map& map, Node* start, Node* go
 		}
 	}
 
-	return std::vector<Node*>(); // Return an empty path if no path is found
+	return std::vector<std::shared_ptr<Node>>(); // Return an empty path if no path is found
 }

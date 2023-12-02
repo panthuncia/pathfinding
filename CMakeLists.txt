@@ -12,5 +12,7 @@ endif()
 project ("pathfinding")
 include(vcpkg/scripts/buildsystems/vcpkg.cmake)
 find_package(OpenCV REQUIRED)
+#find_package(Annoy REQUIRED)
 # Include sub-projects.
 add_subdirectory ("pathfinding")
+#add_subdirectory("extern/annoy")

@@ -5,16 +5,67 @@
 Map::Map(uint32_t map_width, uint32_t map_height) {
     height = map_height;
     width = map_width;
-    grid.resize(height, std::vector<Node>(width));
+    grid.resize(height, std::vector<std::shared_ptr<Node>>(width));
 
     // Initialize nodes and their neighbors
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
-            grid[y][x] = Node(x, y);
+            grid[y][x] = std::make_shared<Node>(x, y);
+        }
+    }
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
             addNeighbors(x, y);
         }
     }
 }
+
+Map::~Map() {
+    //if (index != nullptr) {
+    //    //delete(index);
+    //    for (Node* n : PRMNodes) {
+    //        delete(n);
+    //    }
+    //}
+}
+
+std::vector<std::shared_ptr<Node>> Map::sampleNodes(int numNodes) {
+    std::vector<std::shared_ptr<Node>> nodes;
+    for (int i = 0; i < numNodes; ++i) {
+        std::shared_ptr<Node> node = std::make_shared<Node>(rand() % width, rand() % height);
+        nodes.push_back(node);
+    }
+    return nodes;
+}
+
+void Map::initPRM(int numSamples) {
+    int dimensions = 2;
+    int n_trees = 10;
+    index = std::make_shared<Annoy::AnnoyIndex<int, int, Annoy::Euclidean, Annoy::Kiss32Random, Annoy::AnnoyIndexSingleThreadedBuildPolicy>>(dimensions);
+    PRMNodes = sampleNodes(numSamples);
+    int i=0;
+    for (std::shared_ptr<Node> n : PRMNodes) {
+        std::vector<int> pos = { n.get()->x, n.get()->y};
+        index->add_item(i, pos.data());
+        i++;
+    }
+    index->build(n_trees);
+    int k = 10; // Number of nearest neighbors to find
+    for (int i = 0; i < PRMNodes.size(); ++i) {
+        std::vector<int> neighbors;
+        std::vector<int> distances;
+
+        index->get_nns_by_item(i, k, -1, &neighbors, &distances);
+
+        for (int neighbor : neighbors) {
+            if (neighbor != i) {
+                // Connect node 'i' with its neighbor
+                PRMNodes[i]->neighbors.push_back(PRMNodes[neighbor]);
+            }
+        }
+    }
+}
+
 void Map::addNeighbors(int x, int y) {
     std::vector<std::pair<int, int>> neighborOffsets = { {1, 0}, {0, 1}, {-1, 0}, /*{0, -1},*/ {1, 1}, {1, -1}, {-1, -1}, {-1, 1}}; // 8-directional
 
@@ -23,13 +74,13 @@ void Map::addNeighbors(int x, int y) {
         int ny = y + offset.second;
 
         if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-            grid[y][x].neighbors.push_back(&grid[ny][nx]);
+            grid[y][x].get()->neighbors.push_back(grid[ny][nx]);
         }
     }
 }
 
-Node* Map::getNode(int x, int y) {
-    return &grid[y][x];
+std::shared_ptr<Node> Map::getNode(int x, int y) {
+    return grid[y][x];
 }
 
 void Map::generate_obstacles(int num_obstacles, int max_blob_size) {

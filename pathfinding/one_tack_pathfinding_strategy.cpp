@@ -3,7 +3,7 @@
 #include <math.h>
 #include "raycast.h"
 
-std::vector<Node*> OneTackPathfindingStrategy::solve(Map& map, Node* start, Node* goal, double wind_angle_rad, double no_go_angle_rad) {
+std::vector<std::shared_ptr<Node>> OneTackPathfindingStrategy::solve(Map& map, std::shared_ptr<Node> start, std::shared_ptr<Node> goal, double wind_angle_rad, double no_go_angle_rad) {
 	uint32_t h = map.height;
 	uint32_t w = map.width;
 	double distAtoB = sqrt(pow(goal->x - start->x, 2) + pow(goal->y - start->y, 2));

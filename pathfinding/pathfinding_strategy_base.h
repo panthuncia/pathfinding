@@ -3,5 +3,5 @@
 #include "map.h"
 #include "node.h"
 class PathfindingStrategyBase {
-	virtual std::vector<Node*> solve(Map& map, Node* start, Node* goal, double wind_angle_rad, double no_go_angle) = 0;
+	virtual std::vector<std::shared_ptr<Node>> solve(Map& map, std::shared_ptr<Node> start, std::shared_ptr<Node> goal, double wind_angle_rad, double no_go_angle) = 0;
 };
