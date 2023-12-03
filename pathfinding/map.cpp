@@ -125,11 +125,7 @@ Map Map::rotate(double map_angle_deg) {
     // Convert cv::Mat to std::vector<float>
     auto rotated_vector = std::make_shared<std::vector<float>>();
     rotated_vector->assign((float*)rotated_mat.datastart, (float*)rotated_mat.dataend);
-    auto time_start = std::chrono::high_resolution_clock::now();
     Map new_map = Map(max_dim, rotated_vector, neighbors_grid);
-    auto time_stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
-    std::cout << "new map time: " + std::to_string(duration.count()) << std::endl;
     return new_map;
 }
 

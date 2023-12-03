@@ -87,7 +87,7 @@ std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node* start_nod
             auto path = linearSolver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
             //return path;
             if (path.size() > 0) {
-                displayGrid(map.data, map.width, map.height, path_to_doubles(path), wind_angle_deg, "grid");
+                displayGrid(map.data, map.max_dim, map.max_dim, path_to_doubles(path), wind_angle_deg, "grid");
                     return path;
             }
     }
@@ -99,7 +99,7 @@ std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node* start_nod
         OneTackPathfindingStrategy oneTackSolver;
         auto path = oneTackSolver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
         if (path.size() > 0) {
-            displayGrid(map.data, map.width, map.height, path_to_doubles(path), wind_angle_deg, "grid");
+            displayGrid(map.data, map.max_dim, map.max_dim, path_to_doubles(path), wind_angle_deg, "grid");
             return path;
         }
     }
@@ -119,7 +119,11 @@ std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node* start_nod
     cout << "start: " + to_string(transformed_start_doubles.first) + ", " + to_string(transformed_start_doubles.second) << endl;
     cout << "goal: " + to_string(transformed_goal_doubles.first) + ", " + to_string(transformed_goal_doubles.second) << endl;
 
+    auto time_start = std::chrono::high_resolution_clock::now();
     auto path = solver.solve(rotated_map, rotated_map.getNode(transformed_start_doubles.first, transformed_start_doubles.second), rotated_map.getNode(transformed_goal_doubles.first, transformed_goal_doubles.second));
+    auto time_stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
+    cout << "Search time: " + std::to_string(duration.count()) << endl;
 
     if (path.size() == 0) {
         cout << "No path found" << endl;
@@ -129,6 +133,7 @@ std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node* start_nod
         cout << "transformed goal: " + std::to_string(transformed_goal_doubles.first) + ", " + std::to_string(transformed_goal_doubles.second) << std::endl;
         return path;
     }
+
     displayGrid(map.data, map.max_dim, map.max_dim, rotate_path_doubles(path, rotated_map.max_dim, rotated_map.max_dim, map.max_dim, map.max_dim, map_angle_deg), wind_angle_deg, "grid");
     displayGrid(rotated_map.data, rotated_map.max_dim, rotated_map.max_dim, path_to_doubles(path), 90, "rotated grid");
     return {};
@@ -140,21 +145,15 @@ void do_maps() {
     map.generate_obstacles(30, 100);
 
     cv::Mat grid = cv::Mat(map.max_dim, map.max_dim, CV_32FC1, map.data->data());
-    //cv::imshow("image", grid);
-    //displayGrid(map.data, map.max_dim, map.max_dim, {}, 0, "grid");
 
 
-
-    double wind_angle_deg = 10;// randomAngleDeg();
+    //y direction in openCV is flipped
+    double wind_angle_deg = randomAngleDeg();
 
     auto start = map.randomNode();
     auto goal = map.randomNode();
 
-    auto time_start = std::chrono::high_resolution_clock::now();
     find_solution(map, wind_angle_deg, start, goal);
-    auto time_stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
-    cout << "Solution time: " + std::to_string(duration.count()) << endl;
 
     cv::waitKey(0); // Wait for a key press to close the window
 }
@@ -211,7 +210,7 @@ void displayGrid(std::shared_ptr<std::vector<float>> grid, int width, int height
 
     cv::Point gridCenter(width * cellSize / 2, height * cellSize / 2);
     // Arrow parameters
-    auto windAngle = fmod((-windAngleDeg+180), 360) * M_PI / 180;
+    auto windAngle = -windAngleDeg * M_PI / 180;
     int arrowLength = std::min(width, height) * cellSize / 4; // Adjust the length as needed
     cv::Point arrowEnd(
         gridCenter.x + arrowLength * cos(windAngle),
