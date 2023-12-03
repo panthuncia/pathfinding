@@ -13,6 +13,7 @@
 #include "one_tack_pathfinding_strategy.h"
 #include "astar_pathfinding_strategy.h"
 #include "jump_point_search_pathfinding_strategy.h"
+#include "utilities.h"
 
 #define NOGO_ANGLE_DEGREES 30
 #define M_TAU 2*M_PI
@@ -25,43 +26,6 @@ int randomAngleDeg() {
     std::uniform_int_distribution<> distr(0, 359);
     return distr(eng);
 }
-
-
-std::pair<double, double> rotateAndScale(Node* pt, double radians, uint32_t h, uint32_t w, uint32_t h_new, uint32_t w_new) {
-    double x = pt->x;
-    double y = pt->y;
-    double offset_x = h/2;
-    double offset_y = w/2;
-    double adjusted_x = x - offset_x;
-    double adjusted_y = y - offset_y;
-    double cos_rad = cos(radians);
-    double sin_rad = sin(radians);
-    double qx = offset_x + cos_rad * adjusted_x + sin_rad * adjusted_y;
-    double qy = offset_y + -sin_rad * adjusted_x + cos_rad * adjusted_y;
-    double xoffset = (int(w_new) - int(w)) / 2;
-    double yoffset = (int(h_new) - int(h)) / 2;
-    double x1_new = qx + xoffset;
-    double y1_new = qy + yoffset;
-    return std::make_pair(x1_new, y1_new);
-}
-
-std::vector<std::pair<double, double>> rotate_path_doubles(std::vector<Node*> path, uint32_t oldHeight, uint32_t oldWidth, uint32_t newHeight, uint32_t newWidth, double angle_deg) {
-    std::vector<std::pair<double, double>> transformed_path;
-    for (Node* n : path) {
-        auto transformed_doubles = rotateAndScale(n, -angle_deg * (M_PI / 180), oldHeight, oldWidth, newHeight, newWidth);
-        transformed_path.push_back(std::make_pair(transformed_doubles.first, transformed_doubles.second));
-    }
-    return transformed_path;
-}
-
-std::vector<std::pair<double, double>> path_to_doubles(std::vector<Node*> path) {
-    std::vector<std::pair<double, double>> doubles;
-    for (Node* n : path) {
-        doubles.push_back(std::make_pair(n->x, n->y));
-    }
-    return doubles;
-}
-
 
 bool is_in_nogo(Node* start, Node* goal, float wind_angle_rad, float nogo_angle_rad) {
     auto a = goal->x - start->x;
@@ -77,7 +41,7 @@ bool is_in_nogo(Node* start, Node* goal, float wind_angle_rad, float nogo_angle_
     return(difference < nogo_angle_rad);
 }
 
-std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node* start_node, Node* goal_node) {
+std::vector<std::pair<double, double>> find_solution(Map map, double wind_angle_deg, Node* start_node, Node* goal_node) {
     double wind_angle_rad = wind_angle_deg * (M_PI / 180);
     double nogo_angle_rad = NOGO_ANGLE_DEGREES * (M_PI / 180);
     bool wind_blocked = false;
@@ -87,7 +51,7 @@ std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node* start_nod
             auto path = linearSolver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
             //return path;
             if (path.size() > 0) {
-                displayGrid(map.data, map.max_dim, map.max_dim, path_to_doubles(path), wind_angle_deg, "grid");
+                displayGrid(map.data, map.max_dim, map.max_dim, path, wind_angle_deg, "grid");
                     return path;
             }
     }
@@ -99,28 +63,20 @@ std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node* start_nod
         OneTackPathfindingStrategy oneTackSolver;
         auto path = oneTackSolver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
         if (path.size() > 0) {
-            displayGrid(map.data, map.max_dim, map.max_dim, path_to_doubles(path), wind_angle_deg, "grid");
+            displayGrid(map.data, map.max_dim, map.max_dim, path, wind_angle_deg, "grid");
             return path;
         }
     }
     //if both fail, fall back to pathfinding
-    //rotate map to enable wind restriction
-    double map_angle_deg = -90 + wind_angle_deg;
-    double map_angle_rad = map_angle_deg * (M_PI / 180);
-
-    Map rotated_map = map.rotate(map_angle_deg);
-
-    auto transformed_start_doubles = rotateAndScale(start_node, map_angle_rad, map.max_dim, map.max_dim, rotated_map.max_dim, rotated_map.max_dim);
-    auto transformed_goal_doubles = rotateAndScale(goal_node, map_angle_rad, map.max_dim, map.max_dim, rotated_map.max_dim, rotated_map.max_dim);
 
     //create solver and solve
     AStarPathfindingStrategy solver;
-    cout << "Running Astar:" << endl;
+    /*cout << "Running Astar:" << endl;
     cout << "start: " + to_string(transformed_start_doubles.first) + ", " + to_string(transformed_start_doubles.second) << endl;
-    cout << "goal: " + to_string(transformed_goal_doubles.first) + ", " + to_string(transformed_goal_doubles.second) << endl;
+    cout << "goal: " + to_string(transformed_goal_doubles.first) + ", " + to_string(transformed_goal_doubles.second) << endl;*/
 
     auto time_start = std::chrono::high_resolution_clock::now();
-    auto path = solver.solve(rotated_map, rotated_map.getNode(transformed_start_doubles.first, transformed_start_doubles.second), rotated_map.getNode(transformed_goal_doubles.first, transformed_goal_doubles.second));
+    auto path = solver.solve(map, start_node, goal_node);
     auto time_stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
     cout << "Search time: " + std::to_string(duration.count()) << endl;
@@ -129,19 +85,19 @@ std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node* start_nod
         cout << "No path found" << endl;
         cout << "start: " + std::to_string(start_node->x) + ", " + std::to_string(start_node->y) << std::endl;
         cout << "goal: " + std::to_string(goal_node->x) + ", " + std::to_string(goal_node->y) << std::endl;
-        cout << "transformed start: " + std::to_string(transformed_start_doubles.first) + ", " + std::to_string(transformed_start_doubles.second) << std::endl;
-        cout << "transformed goal: " + std::to_string(transformed_goal_doubles.first) + ", " + std::to_string(transformed_goal_doubles.second) << std::endl;
+        //cout << "transformed start: " + std::to_string(transformed_start_doubles.first) + ", " + std::to_string(transformed_start_doubles.second) << std::endl;
+        //cout << "transformed goal: " + std::to_string(transformed_goal_doubles.first) + ", " + std::to_string(transformed_goal_doubles.second) << std::endl;
         return path;
     }
 
-    displayGrid(map.data, map.max_dim, map.max_dim, rotate_path_doubles(path, rotated_map.max_dim, rotated_map.max_dim, map.max_dim, map.max_dim, map_angle_deg), wind_angle_deg, "grid");
-    displayGrid(rotated_map.data, rotated_map.max_dim, rotated_map.max_dim, path_to_doubles(path), 90, "rotated grid");
+    displayGrid(map.data, map.max_dim, map.max_dim, path, wind_angle_deg, "grid");
+    //displayGrid(rotated_map.data, rotated_map.max_dim, rotated_map.max_dim, path_to_doubles(path), 90, "rotated grid");
     return {};
 }
 
 void do_maps() {
     Map map = Map(100, 100);
-
+    map.initPRM(100);
     map.generate_obstacles(30, 100);
 
     cv::Mat grid = cv::Mat(map.max_dim, map.max_dim, CV_32FC1, map.data->data());

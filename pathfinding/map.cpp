@@ -32,13 +32,15 @@ Map::Map(uint32_t map_width, uint32_t map_height) {
             addNeighbors(x, y);
         }
     }
+
+    PRMNodes = std::make_shared<std::vector<std::shared_ptr<Node>>>();
 }
 
-Map::Map(uint32_t size, std::shared_ptr<std::vector<float>> new_data, std::shared_ptr<std::vector<std::vector<Node>>> new_grid) {
+Map::Map(uint32_t size, std::shared_ptr<std::vector<float>> new_data, std::shared_ptr<std::vector<std::vector<Node>>> new_grid, std::shared_ptr<std::vector<std::shared_ptr<Node>>> new_prm_nodes) {
     max_dim = size;
     data = new_data;
     neighbors_grid = new_grid;
-
+    PRMNodes = new_prm_nodes;
 }
 
 
@@ -57,6 +59,57 @@ void Map::addNeighbors(int x, int y) {
 
 Node* Map::getNode(int x, int y) {
     return &neighbors_grid->at(y).at(x);
+}
+
+std::vector<std::shared_ptr<Node>> Map::sampleNodes(int numNodes) {
+    std::vector<std::shared_ptr<Node>> nodes;
+    for (int i = 0; i < numNodes; ++i) {
+        std::shared_ptr<Node> node = std::make_shared<Node>(rand() % max_dim, rand() % max_dim);
+        nodes.push_back(node);
+    }
+    return nodes;
+}
+
+void Map::initPRM(int numSamples) {
+    int dimensions = 2;
+    int n_trees = 10;
+    index = std::make_shared<Annoy::AnnoyIndex<int, int, Annoy::Euclidean, Annoy::Kiss32Random, Annoy::AnnoyIndexSingleThreadedBuildPolicy>>(dimensions);
+    auto sampled_nodes = sampleNodes(numSamples);
+    PRMNodes->insert(PRMNodes->begin(), sampled_nodes.begin(), sampled_nodes.end());
+    int i = 0;
+    for (std::shared_ptr<Node> n : *PRMNodes) {
+        std::vector<int> pos = { n.get()->x, n.get()->y };
+        index->add_item(i, pos.data());
+        i++;
+    }
+    index->build(n_trees);
+    int k = 10; // Number of nearest neighbors to find
+    for (int i = 0; i < PRMNodes->size(); ++i) {
+        std::vector<int> neighbors;
+        std::vector<int> distances;
+
+        index->get_nns_by_item(i, k, -1, &neighbors, &distances);
+
+        for (int neighbor : neighbors) {
+            if (neighbor != i) {
+                // Connect node 'i' with its neighbor
+                PRMNodes->at(i)->neighbors.push_back(PRMNodes->at(neighbor).get());
+            }
+        }
+    }
+}
+
+void Map::addSinglePRMNode(uint32_t x, uint32_t y, uint32_t num_neighbors) {
+    int id = PRMNodes->size();
+    auto new_node = std::make_shared<Node>(x, y);
+    std::vector<int> neighbors;
+    std::vector<int> distances;
+    index->get_nns_by_item(id, num_neighbors, -1, &neighbors, &distances);
+    for (int neighbor : neighbors) {
+        new_node->neighbors.push_back(PRMNodes->at(neighbor).get());
+        PRMNodes->at(neighbor)->neighbors.push_back(new_node.get());
+    }
+    PRMNodes->push_back(new_node);
 }
 
 Node* Map::randomNode() {
@@ -125,7 +178,7 @@ Map Map::rotate(double map_angle_deg) {
     // Convert cv::Mat to std::vector<float>
     auto rotated_vector = std::make_shared<std::vector<float>>();
     rotated_vector->assign((float*)rotated_mat.datastart, (float*)rotated_mat.dataend);
-    Map new_map = Map(max_dim, rotated_vector, neighbors_grid);
+    Map new_map = Map(max_dim, rotated_vector, neighbors_grid, PRMNodes);
     return new_map;
 }
 

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <chrono>
 #include <string>
+#include "utilities.h"
 
 float JPSPathfindingStrategy::turn_penalty(Node* previous, Node* current, Node* next) {
 	if (current->x - previous->x != 0 && next->x - current->x != 0) {
@@ -196,7 +197,7 @@ std::vector<Node*> JPSPathfindingStrategy::find_jump_points(Map& graph,Node* cur
 	return jump_points;
 }
 
-std::vector<Node*> JPSPathfindingStrategy::solve(Map& map, Node* start, Node* goal, double wind_angle_rad, double no_go_angle_rad) {
+std::vector<std::pair<double, double>> JPSPathfindingStrategy::solve(Map& map, Node* start, Node* goal, double wind_angle_rad, double no_go_angle_rad) {
 	std::priority_queue<Node*, std::vector<Node*>, CompareNode> openSet;
 	std::unordered_set<Node*> closedSet;
 	start->gCost = 0;
@@ -215,7 +216,7 @@ std::vector<Node*> JPSPathfindingStrategy::solve(Map& map, Node* start, Node* go
 			}
 			std::reverse(path.begin(), path.end());
 
-			return path;
+			return path_to_doubles(path);
 		}
 
 		closedSet.insert(currentNode);
@@ -238,5 +239,5 @@ std::vector<Node*> JPSPathfindingStrategy::solve(Map& map, Node* start, Node* go
 		}
 	}
 
-	return std::vector<Node*>(); // Return an empty path if no path is found
+	return {}; // Return an empty path if no path is found
 }

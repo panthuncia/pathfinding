@@ -2,8 +2,9 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "raycast.h"
+#include "utilities.h"
 
-std::vector<Node*> OneTackPathfindingStrategy::solve(Map& map, Node* start, Node* goal, double wind_angle_rad, double no_go_angle_rad) {
+std::vector<std::pair<double, double>> OneTackPathfindingStrategy::solve(Map& map, Node* start, Node* goal, double wind_angle_rad, double no_go_angle_rad) {
 	uint32_t h = map.height;
 	uint32_t w = map.width;
 	double distAtoB = sqrt(pow(goal->x - start->x, 2) + pow(goal->y - start->y, 2));
@@ -25,12 +26,12 @@ std::vector<Node*> OneTackPathfindingStrategy::solve(Map& map, Node* start, Node
 
 	if (raycast(map, start->x, start->y, C1_x, C1_y)) {
 		if (raycast(map, C1_x, C1_y, goal->x, goal->y)) {
-			return { start, map.getNode(C1_x, C1_y), goal };
+			return path_to_doubles({ start, map.getNode(C1_x, C1_y), goal });
 		}
 	}
 	if (raycast(map, start->x, start->y, C2_x, C2_y)) {
 		if (raycast(map, C2_x, C2_y, goal->x, goal->y)) {
-			return { start, map.getNode(C2_x, C2_y), goal };
+			return path_to_doubles({ start, map.getNode(C2_x, C2_y), goal });
 		}
 	}
 	return {};
