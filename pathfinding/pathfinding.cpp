@@ -18,14 +18,6 @@
 #define M_TAU 2*M_PI
 
 using namespace std;
-Node generateRandomPoint(int width, int height) {
-    std::random_device rd;
-    std::mt19937 eng(rd());
-    std::uniform_int_distribution<> distrX(0, width - 1);
-    std::uniform_int_distribution<> distrY(0, height - 1);
-
-    return Node(distrX(eng), distrY(eng));
-}
 
 int randomAngleDeg() {
     std::random_device rd;
@@ -75,7 +67,6 @@ bool is_in_nogo(Node* start, Node* goal, float wind_angle_rad, float nogo_angle_
     auto a = goal->x - start->x;
     auto b = goal->y - start->y;
     double angle_a_b = fmod(atan2(b, a) + M_TAU, M_TAU);
-    std::cout << angle_a_b << std::endl;
 
     double opposite_angle = fmod(angle_a_b + M_PI, M_TAU);
 
@@ -83,23 +74,20 @@ bool is_in_nogo(Node* start, Node* goal, float wind_angle_rad, float nogo_angle_
     if (difference > M_PI) {
         difference = M_TAU - difference;
     }
-    std::cout << difference << std::endl;
     return(difference < nogo_angle_rad);
 }
 
-std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node start, Node goal) {
+std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node* start_node, Node* goal_node) {
     double wind_angle_rad = wind_angle_deg * (M_PI / 180);
     double nogo_angle_rad = NOGO_ANGLE_DEGREES * (M_PI / 180);
     bool wind_blocked = false;
     //start with linear solver
-    auto start_node = map.getNode(start.x, start.y);
-    auto goal_node = map.getNode(goal.x, goal.y);
     if (!is_in_nogo(start_node, goal_node, wind_angle_rad, nogo_angle_rad)) {
         LinearRaycastPathfindingStrategy linearSolver;
-            auto path = linearSolver.solve(map, map.getNode(start.x, start.y), map.getNode(goal.x, goal.y), wind_angle_rad, nogo_angle_rad);
+            auto path = linearSolver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
             //return path;
             if (path.size() > 0) {
-                displayGrid(map.data, map.width, map.height, path_to_doubles(path), wind_angle_deg, "grid");
+                displayGrid(map.data, map.max_dim, map.max_dim, path_to_doubles(path), wind_angle_deg, "grid");
                     return path;
             }
     }
@@ -109,50 +97,64 @@ std::vector<Node*> find_solution(Map map, double wind_angle_deg, Node start, Nod
     //if that fails, try one tack
     if (wind_blocked) {
         OneTackPathfindingStrategy oneTackSolver;
-        auto path = oneTackSolver.solve(map, map.getNode(start.x, start.y), map.getNode(goal.x, goal.y), wind_angle_rad, nogo_angle_rad);
+        auto path = oneTackSolver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
         if (path.size() > 0) {
-            displayGrid(map.data, map.width, map.height, path_to_doubles(path), wind_angle_deg, "grid");
+            displayGrid(map.data, map.max_dim, map.max_dim, path_to_doubles(path), wind_angle_deg, "grid");
             return path;
         }
     }
     //if both fail, fall back to pathfinding
     //rotate map to enable wind restriction
     double map_angle_deg = -90 + wind_angle_deg;
+    double map_angle_rad = map_angle_deg * (M_PI / 180);
+
     Map rotated_map = map.rotate(map_angle_deg);
-    auto transformed_start_doubles = rotateAndScale(&start, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
-    auto transformed_goal_doubles = rotateAndScale(&goal, map_angle_deg, map.height, map.width, rotated_map.height, rotated_map.width);
+
+    auto transformed_start_doubles = rotateAndScale(start_node, map_angle_rad, map.max_dim, map.max_dim, rotated_map.max_dim, rotated_map.max_dim);
+    auto transformed_goal_doubles = rotateAndScale(goal_node, map_angle_rad, map.max_dim, map.max_dim, rotated_map.max_dim, rotated_map.max_dim);
 
     //create solver and solve
     AStarPathfindingStrategy solver;
-    auto time_start = std::chrono::high_resolution_clock::now();
+    cout << "Running Astar:" << endl;
     cout << "start: " + to_string(transformed_start_doubles.first) + ", " + to_string(transformed_start_doubles.second) << endl;
     cout << "goal: " + to_string(transformed_goal_doubles.first) + ", " + to_string(transformed_goal_doubles.second) << endl;
 
+    auto time_start = std::chrono::high_resolution_clock::now();
     auto path = solver.solve(rotated_map, rotated_map.getNode(transformed_start_doubles.first, transformed_start_doubles.second), rotated_map.getNode(transformed_goal_doubles.first, transformed_goal_doubles.second));
     auto time_stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
+    cout << "Search time: " + std::to_string(duration.count()) << endl;
 
-    //diagnostics
-    cout << "Execution time: " + std::to_string(duration.count()) << endl;
     if (path.size() == 0) {
-        cout << "start: " + std::to_string(start.x) + ", " + std::to_string(start.y) << std::endl;
-        cout << "goal: " + std::to_string(goal.x) + ", " + std::to_string(goal.y) << std::endl;
+        cout << "No path found" << endl;
+        cout << "start: " + std::to_string(start_node->x) + ", " + std::to_string(start_node->y) << std::endl;
+        cout << "goal: " + std::to_string(goal_node->x) + ", " + std::to_string(goal_node->y) << std::endl;
         cout << "transformed start: " + std::to_string(transformed_start_doubles.first) + ", " + std::to_string(transformed_start_doubles.second) << std::endl;
         cout << "transformed goal: " + std::to_string(transformed_goal_doubles.first) + ", " + std::to_string(transformed_goal_doubles.second) << std::endl;
         return path;
     }
-    displayGrid(map.data, map.width, map.height, rotate_path_doubles(path, rotated_map.height, rotated_map.width, map.height, map.width, map_angle_deg), wind_angle_deg, "grid");
-    displayGrid(rotated_map.data, rotated_map.width, rotated_map.height, path_to_doubles(path), 90, "rotated grid");
+
+    displayGrid(map.data, map.max_dim, map.max_dim, rotate_path_doubles(path, rotated_map.max_dim, rotated_map.max_dim, map.max_dim, map.max_dim, map_angle_deg), wind_angle_deg, "grid");
+    displayGrid(rotated_map.data, rotated_map.max_dim, rotated_map.max_dim, path_to_doubles(path), 90, "rotated grid");
     return {};
 }
 
 void do_maps() {
     Map map = Map(100, 100);
+
     map.generate_obstacles(30, 100);
-    double wind_angle_deg = 10;// randomAngleDeg();
-    auto start = generateRandomPoint(map.width, map.height);
-    auto goal = generateRandomPoint(map.width, map.height);
+
+    cv::Mat grid = cv::Mat(map.max_dim, map.max_dim, CV_32FC1, map.data->data());
+
+
+    //y direction in openCV is flipped
+    double wind_angle_deg = randomAngleDeg();
+
+    auto start = map.randomNode();
+    auto goal = map.randomNode();
+
     find_solution(map, wind_angle_deg, start, goal);
+
     cv::waitKey(0); // Wait for a key press to close the window
 }
 
@@ -164,14 +166,14 @@ int main()
     }
 }
 
-void displayGrid(const std::vector<float>& grid, int width, int height, const std::vector<std::pair<double, double>>& path, float windAngleDeg, const char* name) {
+void displayGrid(std::shared_ptr<std::vector<float>> grid, int width, int height, const std::vector<std::pair<double, double>>& path, float windAngleDeg, const char* name) {
     int cellSize = 5; // Size of each cell in the displayed image
     cv::Mat image(height * cellSize, width * cellSize, CV_8UC3, cv::Scalar(255, 255, 255));
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int index = y * width + x;
-            if (grid[index] > 0.5f) {
+            if (grid->at(index) > 0.5f) {
                 cv::rectangle(image,
                     cv::Point(x * cellSize, y * cellSize),
                     cv::Point((x + 1) * cellSize, (y + 1) * cellSize),
@@ -182,29 +184,33 @@ void displayGrid(const std::vector<float>& grid, int width, int height, const st
     }
 
     // Draw the path as a line
-    for (size_t i = 0; i < path.size() - 1; ++i) {
-        cv::Point pt1(path[i].first * cellSize + cellSize / 2, path[i].second * cellSize + cellSize / 2);
-        cv::Point pt2(path[i + 1].first * cellSize + cellSize / 2, path[i + 1].second * cellSize + cellSize / 2);
-        cv::line(image, pt1, pt2, cv::Scalar(0, 0, 255), 2); // Red color for path
+    if (path.size() > 0) {
+        for (size_t i = 0; i < path.size() - 1; ++i) {
+            cv::Point pt1(path[i].first * cellSize + cellSize / 2, path[i].second * cellSize + cellSize / 2);
+            cv::Point pt2(path[i + 1].first * cellSize + cellSize / 2, path[i + 1].second * cellSize + cellSize / 2);
+            cv::line(image, pt1, pt2, cv::Scalar(0, 0, 255), 2); // Red color for path
+        }
     }
 
     // Draw start position as a green circle
-    cv::circle(image,
-        cv::Point(path[0].first * cellSize + cellSize / 2, path[0].second * cellSize + cellSize / 2),
-        cellSize * 2,
-        cv::Scalar(0, 255, 0), // Green color for start
-        cv::FILLED);
+    if (path.size() >= 2) {
+        cv::circle(image,
+            cv::Point(path[0].first * cellSize + cellSize / 2, path[0].second * cellSize + cellSize / 2),
+            cellSize * 2,
+            cv::Scalar(0, 255, 0), // Green color for start
+            cv::FILLED);
 
-    // Draw end position as a blue circle
-    cv::circle(image,
-        cv::Point(path.back().first * cellSize + cellSize / 2, path.back().second * cellSize + cellSize / 2),
-        cellSize * 2,
-        cv::Scalar(255, 0, 0), // Blue color for end
-        cv::FILLED);
+        // Draw end position as a blue circle
+        cv::circle(image,
+            cv::Point(path.back().first * cellSize + cellSize / 2, path.back().second * cellSize + cellSize / 2),
+            cellSize * 2,
+            cv::Scalar(255, 0, 0), // Blue color for end
+            cv::FILLED);
+    }
 
     cv::Point gridCenter(width * cellSize / 2, height * cellSize / 2);
     // Arrow parameters
-    auto windAngle = fmod((-windAngleDeg+180), 360) * M_PI / 180;
+    auto windAngle = -windAngleDeg * M_PI / 180;
     int arrowLength = std::min(width, height) * cellSize / 4; // Adjust the length as needed
     cv::Point arrowEnd(
         gridCenter.x + arrowLength * cos(windAngle),
