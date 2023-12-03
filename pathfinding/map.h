@@ -15,6 +15,7 @@ public:
 	bool isWalkable(int x, int y);
 	bool isBlocked(int x, int y);
 	int gridToIndex(uint32_t x, uint32_t y);
+	Node* randomNode();
 	//std::vector<Node*> getNeighbors(Node* node);
 	uint32_t width;
 	uint32_t height;

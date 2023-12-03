@@ -38,6 +38,7 @@ Map::Map(uint32_t size, std::shared_ptr<std::vector<float>> new_data, std::share
     max_dim = size;
     data = new_data;
     neighbors_grid = new_grid;
+
 }
 
 
@@ -56,6 +57,15 @@ void Map::addNeighbors(int x, int y) {
 
 Node* Map::getNode(int x, int y) {
     return &neighbors_grid->at(y).at(x);
+}
+
+Node* Map::randomNode() {
+    std::random_device rd;
+    std::mt19937 eng(rd());
+    std::uniform_int_distribution<> distrX(0, width - 1);
+    std::uniform_int_distribution<> distrY(0, height - 1);
+
+    return getNode(distrX(eng)+half_width_diff, distrY(eng)+half_height_diff);
 }
 
 void Map::generate_obstacles(int num_obstacles, int max_blob_size) {
@@ -124,16 +134,16 @@ Map Map::rotate(double map_angle_deg) {
 }
 
 bool Map::isWalkable(int x, int y) {
-    if (x >= 0 and y >= 0 and x < width and y < height and data->at(gridToIndex(x, y)) < 0.5)
+    if (x >= 0 and y >= 0 and x < max_dim and y < max_dim and data->at(gridToIndex(x, y)) < 0.5)
         return true;
     return false;
 }
 
 bool Map::isBlocked(int x, int y) {
-    if (x >= 0 and y >= 0 and x < width and y < height and data->at(gridToIndex(x, y)) < 0.5)
+    if (x >= 0 and y >= 0 and x < max_dim and y < max_dim and data->at(gridToIndex(x, y)) < 0.5)
         return false;
     return true;
 }
 int Map::gridToIndex(uint32_t x, uint32_t y) {
-    return y * width + x;
+    return y * max_dim + x;
 }
