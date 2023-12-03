@@ -20,8 +20,7 @@ public:
 	Node* randomNode();
 	void initPRM(int numSamples);
 	std::vector<std::shared_ptr<Node>> sampleNodes(int numNodes);
-	void addSinglePRMNode(Node* n, uint32_t num_neighbors);
-	void addSinglePRMNode(uint32_t x, uint32_t y, uint32_t num_neighbors);
+	std::shared_ptr<Node> addSinglePRMNode(uint32_t x, uint32_t y, uint32_t num_neighbors);
 	//std::vector<Node*> getNeighbors(Node* node);
 	uint32_t width;
 	uint32_t height;

@@ -99,7 +99,7 @@ void Map::initPRM(int numSamples) {
     }
 }
 
-void Map::addSinglePRMNode(uint32_t x, uint32_t y, uint32_t num_neighbors) {
+std::shared_ptr<Node> Map::addSinglePRMNode(uint32_t x, uint32_t y, uint32_t num_neighbors) {
     int id = PRMNodes->size();
     auto new_node = std::make_shared<Node>(x, y);
     std::vector<int> neighbors;
@@ -110,6 +110,7 @@ void Map::addSinglePRMNode(uint32_t x, uint32_t y, uint32_t num_neighbors) {
         PRMNodes->at(neighbor)->neighbors.push_back(new_node.get());
     }
     PRMNodes->push_back(new_node);
+    return(new_node);
 }
 
 Node* Map::randomNode() {

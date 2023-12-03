@@ -13,6 +13,7 @@
 #include "one_tack_pathfinding_strategy.h"
 #include "astar_pathfinding_strategy.h"
 #include "jump_point_search_pathfinding_strategy.h"
+#include "prm_pathfinding_strategy.h"
 #include "utilities.h"
 
 #define NOGO_ANGLE_DEGREES 30
