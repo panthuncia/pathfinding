@@ -6,4 +6,3 @@
 #include <iostream>
 #include <vector>
 #include "node.h"
-void displayGrid(std::shared_ptr<std::vector<float>> grid, int width, int height, const std::vector<std::pair<double, double>>& path, float windAngle, const char* name);

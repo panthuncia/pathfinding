@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmath>
 #include <opencv2/opencv.hpp>
+#include "raycast.h"
 Map::Map(uint32_t map_width, uint32_t map_height) {
 
     height = map_height;
@@ -72,7 +73,7 @@ std::vector<std::shared_ptr<Node>> Map::sampleNodes(int numNodes) {
 
 void Map::initPRM(int numSamples) {
     int dimensions = 2;
-    int n_trees = 10;
+    int n_trees = 100;
     index = std::make_shared<Annoy::AnnoyIndex<int, int, Annoy::Euclidean, Annoy::Kiss32Random, Annoy::AnnoyIndexSingleThreadedBuildPolicy>>(dimensions);
     auto sampled_nodes = sampleNodes(numSamples);
     PRMNodes->insert(PRMNodes->begin(), sampled_nodes.begin(), sampled_nodes.end());
@@ -88,9 +89,10 @@ void Map::initPRM(int numSamples) {
         std::vector<int> neighbors;
         std::vector<int> distances;
 
-        index->get_nns_by_item(i, k, -1, &neighbors, &distances);
+        index->get_nns_by_item(i, k, 60, &neighbors, &distances);
 
         for (int neighbor : neighbors) {
+            //TODO: Optimize by caching raycast results and not re-casting for the same path in reverse
             if (neighbor != i) {
                 // Connect node 'i' with its neighbor
                 PRMNodes->at(i)->neighbors.push_back(PRMNodes->at(neighbor).get());
@@ -104,8 +106,13 @@ std::shared_ptr<Node> Map::addSinglePRMNode(uint32_t x, uint32_t y, uint32_t num
     auto new_node = std::make_shared<Node>(x, y);
     std::vector<int> neighbors;
     std::vector<int> distances;
-    index->get_nns_by_item(id, num_neighbors, -1, &neighbors, &distances);
+    std::vector<int> pos = {new_node->x, new_node->y};
+    index->add_item(id, pos.data());
+    index->get_nns_by_item(id, 10, 60, &neighbors, &distances);
+    std::cout << "neighbors found: " + std::to_string(neighbors.size()) << std::endl;
     for (int neighbor : neighbors) {
+        if (neighbor == id)
+            continue;
         new_node->neighbors.push_back(PRMNodes->at(neighbor).get());
         PRMNodes->at(neighbor)->neighbors.push_back(new_node.get());
     }

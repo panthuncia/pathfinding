@@ -81,11 +81,13 @@ std::vector<std::pair<double, double>> AStarPathfindingStrategy::solve(Map& map,
 	//rotate map to enable wind restriction
 	double map_angle_rad = wind_angle_rad - M_PI / 2;
 	double map_angle_deg = map_angle_rad * (180 / M_PI);
+	std::cout << "map angle deg:" + std::to_string(map_angle_deg);
 	Map rotated_map = map.rotate(map_angle_deg);
 
 	auto transformed_start_doubles = rotateAndScale(start, map_angle_rad, map.max_dim, map.max_dim, rotated_map.max_dim, rotated_map.max_dim);
 	auto transformed_goal_doubles = rotateAndScale(goal, map_angle_rad, map.max_dim, map.max_dim, rotated_map.max_dim, rotated_map.max_dim);
 
 	auto path = AStar(rotated_map, rotated_map.getNode(transformed_start_doubles.first, transformed_start_doubles.second), rotated_map.getNode(transformed_goal_doubles.first, transformed_goal_doubles.second));
+	displayGrid(rotated_map.data, rotated_map.max_dim, rotated_map.max_dim, path_to_doubles(path), 90, "rotated grid");
 	return rotate_path_doubles(path, map.max_dim, map.max_dim, map.max_dim, map.max_dim, map_angle_deg);
 }
