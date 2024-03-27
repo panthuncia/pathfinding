@@ -16,58 +16,34 @@
 #include "prm_pathfinding_strategy.h"
 #include "utilities.h"
 
-#define NOGO_ANGLE_DEGREES 30
-#define M_TAU 2*M_PI
-
 using namespace std;
-
-int randomAngleDeg() {
-    std::random_device rd;
-    std::mt19937 eng(rd());
-    std::uniform_int_distribution<> distr(0, 359);
-    return distr(eng);
-}
-
-bool is_in_nogo(Node* start, Node* goal, float wind_angle_rad, float nogo_angle_rad) {
-    auto a = goal->x - start->x;
-    auto b = goal->y - start->y;
-    double angle_a_b = fmod(atan2(b, a) + M_TAU, M_TAU);
-
-    double opposite_angle = fmod(angle_a_b + M_PI, M_TAU);
-
-    double difference = abs(wind_angle_rad - opposite_angle);
-    if (difference > M_PI) {
-        difference = M_TAU - difference;
-    }
-    return(difference < nogo_angle_rad);
-}
 
 std::vector<std::pair<double, double>> find_solution(Map map, double wind_angle_deg, Node* start_node, Node* goal_node) {
     double wind_angle_rad = wind_angle_deg * (M_PI / 180);
     double nogo_angle_rad = NOGO_ANGLE_DEGREES * (M_PI / 180);
     bool wind_blocked = false;
-    ////start with linear solver
-    //if (!is_in_nogo(start_node, goal_node, wind_angle_rad, nogo_angle_rad)) {
-    //    LinearRaycastPathfindingStrategy linearSolver;
-    //        auto path = linearSolver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
-    //        //return path;
-    //        if (path.size() > 0) {
-    //            displayGrid(map.data, map.max_dim, map.max_dim, path, wind_angle_deg, "grid");
-    //                return path;
-    //        }
-    //}
-    //else {
-    //    wind_blocked = true;
-    //}
-    ////if that fails, try one tack
-    //if (wind_blocked) {
-    //    OneTackPathfindingStrategy oneTackSolver;
-    //    auto path = oneTackSolver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
-    //    if (path.size() > 0) {
-    //        displayGrid(map.data, map.max_dim, map.max_dim, path, wind_angle_deg, "grid");
-    //        return path;
-    //    }
-    //}
+    //start with linear solver
+    if (!is_in_nogo(start_node, goal_node, wind_angle_rad, nogo_angle_rad)) {
+        LinearRaycastPathfindingStrategy linearSolver;
+            auto path = linearSolver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
+            //return path;
+            if (path.size() > 0) {
+                displayGrid(map.data, map.max_dim, map.max_dim, path, wind_angle_deg, "grid");
+                    return path;
+            }
+    }
+    else {
+        wind_blocked = true;
+    }
+    //if that fails, try one tack
+    if (wind_blocked) {
+        OneTackPathfindingStrategy oneTackSolver;
+        auto path = oneTackSolver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
+        if (path.size() > 0) {
+            displayGrid(map.data, map.max_dim, map.max_dim, path, wind_angle_deg, "grid");
+            return path;
+        }
+    }
     //if both fail, fall back to pathfinding
 
     //create solver and solve
@@ -78,6 +54,7 @@ std::vector<std::pair<double, double>> find_solution(Map map, double wind_angle_
 
     auto time_start = std::chrono::high_resolution_clock::now();
     auto path = solver.solve(map, start_node, goal_node, wind_angle_rad);
+    path = simplify_path(path, wind_angle_deg, map);
     auto time_stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
     cout << "Search time: " + std::to_string(duration.count()) << endl;

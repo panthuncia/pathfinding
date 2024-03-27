@@ -2,6 +2,11 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <opencv2/opencv.hpp>
+#include <random>
+#include "raycast.h"
+
+#define M_TAU 2*M_PI
+
 double distance(double x1, double y1, double x2, double y2) {
     double x2x1 = x2 - x1;
     double y2y1 = y2 - y1;
@@ -44,6 +49,71 @@ std::vector<std::pair<double, double>> path_to_doubles(std::vector<Node*> path) 
         doubles.push_back(std::make_pair(n->x, n->y));
     }
     return doubles;
+}
+
+std::vector<std::pair<double, double>> simplify_path(std::vector<std::pair<double, double>> originalPath, double wind_angle_deg, Map& map) {
+    double wind_angle_rad = wind_angle_deg * (M_PI / 180);
+    double nogo_angle_rad = NOGO_ANGLE_DEGREES * (M_PI / 180);
+    std::set<uint> removedIndices;
+    int i = 0;
+    for (int i = 0; i < originalPath.size(); i++) {
+        auto current = originalPath[i];
+        bool foundBlocker = false;
+        int j = 2;
+        int jump = 0;
+        while (!foundBlocker && (i+j)<originalPath.size()) {
+            int index = i + j;
+            auto next = originalPath[index];
+            if (!is_in_nogo(current, next, wind_angle_rad, nogo_angle_rad) && raycast(map, current.first, current.second, next.first, next.second)) {
+                removedIndices.insert(index - 1);
+                jump = j;
+            }
+            j += 1;
+        }
+        i += jump;
+    }
+    std::vector<std::pair<double, double>> newPath;
+    for (int i = 0; i < originalPath.size(); i++) {
+        if (!removedIndices.contains(i)) {
+            newPath.push_back(originalPath[i]);
+        }
+    }
+    return newPath;
+}
+
+int randomAngleDeg() {
+    std::random_device rd;
+    std::mt19937 eng(rd());
+    std::uniform_int_distribution<> distr(0, 359);
+    return distr(eng);
+}
+
+bool is_in_nogo(Node* start, Node* goal, float wind_angle_rad, float nogo_angle_rad) {
+    auto a = goal->x - start->x;
+    auto b = goal->y - start->y;
+    double angle_a_b = fmod(atan2(b, a) + M_TAU, M_TAU);
+
+    double opposite_angle = fmod(angle_a_b + M_PI, M_TAU);
+
+    double difference = abs(wind_angle_rad - opposite_angle);
+    if (difference > M_PI) {
+        difference = M_TAU - difference;
+    }
+    return(difference < nogo_angle_rad);
+}
+
+bool is_in_nogo(std::pair<double, double> start, std::pair<double, double> goal, float wind_angle_rad, float nogo_angle_rad) {
+    auto a = goal.first - start.first;
+    auto b = goal.second - start.second;
+    double angle_a_b = fmod(atan2(b, a) + M_TAU, M_TAU);
+
+    double opposite_angle = fmod(angle_a_b + M_PI, M_TAU);
+
+    double difference = abs(wind_angle_rad - opposite_angle);
+    if (difference > M_PI) {
+        difference = M_TAU - difference;
+    }
+    return(difference < nogo_angle_rad);
 }
 
 void displayGrid(std::shared_ptr<std::vector<float>> grid, int width, int height, const std::vector<std::pair<double, double>>& path, float windAngleDeg, const char* name) {
