@@ -55,7 +55,6 @@ std::vector<std::pair<double, double>> simplify_path(std::vector<std::pair<doubl
     double wind_angle_rad = wind_angle_deg * (M_PI / 180);
     double nogo_angle_rad = NOGO_ANGLE_DEGREES * (M_PI / 180);
     std::set<uint> removedIndices;
-    int i = 0;
     for (int i = 0; i < originalPath.size(); i++) {
         auto current = originalPath[i];
         bool foundBlocker = false;

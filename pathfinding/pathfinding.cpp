@@ -54,6 +54,8 @@ std::vector<std::pair<double, double>> find_solution(Map map, double wind_angle_
 
     auto time_start = std::chrono::high_resolution_clock::now();
     auto path = solver.solve(map, start_node, goal_node, wind_angle_rad);
+    path = solver.solve(map, start_node, goal_node, wind_angle_rad);
+
     path = simplify_path(path, wind_angle_deg, map);
     auto time_stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
