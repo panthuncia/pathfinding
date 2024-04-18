@@ -98,7 +98,7 @@ std::vector<std::shared_ptr<Node>> Map::sampleGaussian(int numNodes, float targe
     return nodes;
 }
 
-void Map::initPRM(int numSamples, float connection_radius) {
+void Map::initPRM(float samples_per_unit_squared, float connection_radius) {
 
     // Start with a low-resolution grid
     int step = 5;
@@ -110,7 +110,8 @@ void Map::initPRM(int numSamples, float connection_radius) {
     }
 
     prm_connection_radius = connection_radius;
-    auto sampled_nodes = sampleNodes(numSamples);
+    int num_samples = samples_per_unit_squared * ((max_dim - 2 * half_height_diff) * (max_dim - 2 * half_width_diff));
+    auto sampled_nodes = sampleNodes(num_samples);
 
     //PRMNodes->insert(PRMNodes->begin(), sampled_nodes.begin(), sampled_nodes.end());
     int i = 0;

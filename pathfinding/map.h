@@ -30,7 +30,7 @@ public:
 	bool isBlocked(float x, float y);
 	int gridToIndex(float x, float y);
 	Node* randomNode();
-	void initPRM(int numSamples, float connection_radius);
+	void initPRM(float samples_per_unit_squared, float connection_radius);
 	std::vector<std::shared_ptr<Node>> sampleNodes(int numNodes);
 	std::vector<std::shared_ptr<Node>> sampleGaussian(int numNodes, float target_x, float target_y, float std_dev);
 	std::shared_ptr<Node> addSinglePRMNode(float x, float y, float connection_radius);
