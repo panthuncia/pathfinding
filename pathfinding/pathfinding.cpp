@@ -53,12 +53,17 @@ std::vector<std::pair<double, double>> find_solution(Map& map, double wind_angle
     cout << "goal: " + to_string(transformed_goal_doubles.first) + ", " + to_string(transformed_goal_doubles.second) << endl;*/
 
     auto time_start = std::chrono::high_resolution_clock::now();
+    auto path2 = solver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
+
     auto path = solver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
 
     AStarPathfindingStrategy astar_solver;
+    auto astar_path2 = astar_solver.solve(map, start_node, goal_node, wind_angle_rad);
     auto astar_path = astar_solver.solve(map, start_node, goal_node, wind_angle_rad);
 
-    //path = simplify_path(path, wind_angle_deg, map);
+    path = simplify_path(path, wind_angle_deg, map);
+    astar_path = simplify_path(astar_path, wind_angle_deg, map);
+
     auto time_stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
     cout << "Search time: " + std::to_string(duration.count()) << endl;

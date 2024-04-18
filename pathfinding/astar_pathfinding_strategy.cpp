@@ -45,12 +45,21 @@ std::vector<Node*> AStarPathfindingStrategy::AStar(Map& map, Node* start, Node* 
 		openSet.pop();
 		if (currentNode == goal) {
 			std::vector<Node*> path;
+			Node* originalCurrent = currentNode;
 			while (currentNode != nullptr) {
 				path.push_back(currentNode);
 				currentNode = currentNode->parent;
 			}
 			std::reverse(path.begin(), path.end());
-
+			originalCurrent->reset();
+			for (Node* node : closedSet) {
+				node->reset();
+			}
+			for (int i = 0; i < openSet.size(); i++) {
+				Node* node = openSet.top();
+				openSet.pop();
+				node->reset();
+			}
 			//reset nodes
 			while (!openSet.empty()) {
 				auto node = openSet.top();
