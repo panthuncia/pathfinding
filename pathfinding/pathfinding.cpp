@@ -53,9 +53,10 @@ std::vector<std::pair<double, double>> find_solution(Map& map, double wind_angle
     cout << "goal: " + to_string(transformed_goal_doubles.first) + ", " + to_string(transformed_goal_doubles.second) << endl;*/
 
     auto time_start = std::chrono::high_resolution_clock::now();
-     auto path = solver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
+    auto path = solver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
 
-    //path = solver.solve(map, start_node, goal_node, wind_angle_rad);
+    AStarPathfindingStrategy astar_solver;
+    auto astar_path = astar_solver.solve(map, start_node, goal_node, wind_angle_rad);
 
     //path = simplify_path(path, wind_angle_deg, map);
     auto time_stop = std::chrono::high_resolution_clock::now();
@@ -75,7 +76,11 @@ std::vector<std::pair<double, double>> find_solution(Map& map, double wind_angle
     startGoalVector.push_back(std::make_pair(start_node->x, start_node->y));
     startGoalVector.push_back(std::make_pair(goal_node->x, goal_node->y));
 
-    displayGrid(map.data, map.max_dim, map.max_dim, path.size() == 0? startGoalVector : path, wind_angle_deg, "grid");
+    if (path.size() == 0) {
+        cout << "No path found! Displaying start and end" << endl;
+    }
+    displayGrid(map.data, map.max_dim, map.max_dim, path.size() == 0? startGoalVector : path, wind_angle_deg, "prm grid");
+    displayGrid(map.data, map.max_dim, map.max_dim, astar_path.size() == 0 ? startGoalVector : astar_path, wind_angle_deg, "grid");
     //displayGrid(rotated_map.data, rotated_map.max_dim, rotated_map.max_dim, path_to_doubles(path), 90, "rotated grid");
     return {};
 }

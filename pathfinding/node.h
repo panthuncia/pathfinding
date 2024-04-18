@@ -10,7 +10,13 @@ public:
     std::vector<Node*> neighbors;
     Node(float x, float y) : x(x), y(y), gCost(INFINITY), hCost(INFINITY), fCost(INFINITY), parent(nullptr) {}
     Node() :gCost(INFINITY), hCost(INFINITY), fCost(INFINITY), parent(nullptr) {}
-
+    void reset()
+    {
+        gCost = INFINITY;
+        hCost = INFINITY;
+        fCost = INFINITY;
+        parent = nullptr;
+    }
     void calculateFCost() {
         fCost = gCost + hCost;
     }

@@ -2,9 +2,6 @@
 #include <vector>
 #include <memory>
 #include "node.h"
-#include "../extern/annoy/src/annoylib.h"
-#include "../extern/annoy/src/kissrandom.h"
-#include "../extern/ann_1.1.2/include/ANN/ANN.h"
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Search_traits_2.h>
 #include <CGAL/Kd_tree.h>
@@ -25,13 +22,13 @@ public:
 	Map(uint32_t map_width, uint32_t map_height);
 	//for rotation
 	Map(uint32_t size, std::shared_ptr<std::vector<float>> new_data, std::shared_ptr<std::vector<std::vector<Node>>> new_grid, std::shared_ptr<std::vector<std::shared_ptr<Node>>> new_prm_nodes);
-	Map& rotate(double map_angle_deg);
+	Map* rotate(double map_angle_deg);
 	void addNeighbors(int x, int y);
 	Node* getNode(int x, int y);
 	void generate_obstacles(int num_obstacles, int max_blob_size);
-	bool isWalkable(int x, int y);
-	bool isBlocked(int x, int y);
-	int gridToIndex(uint32_t x, uint32_t y);
+	bool isWalkable(float x, float y);
+	bool isBlocked(float x, float y);
+	int gridToIndex(float x, float y);
 	Node* randomNode();
 	void initPRM(int numSamples);
 	std::vector<std::shared_ptr<Node>> sampleNodes(int numNodes);

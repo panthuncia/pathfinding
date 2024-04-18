@@ -234,7 +234,7 @@ void Map::create_blob(std::shared_ptr<std::vector<float>> grid, uint32_t blob_st
     }
 }
 
-Map& Map::rotate(double map_angle_deg) {
+Map* Map::rotate(double map_angle_deg) {
     //rotate map
     cv::Mat mat = cv::Mat(max_dim, max_dim, CV_32FC1, data->data());
     cv::Point2f center((mat.cols - 1) / 2.0, (mat.rows - 1) / 2.0);    cv::Mat rot = cv::getRotationMatrix2D(center, map_angle_deg, 1.0);
@@ -255,21 +255,20 @@ Map& Map::rotate(double map_angle_deg) {
     // Convert cv::Mat to std::vector<float>
     auto rotated_vector = std::make_shared<std::vector<float>>();
     rotated_vector->assign((float*)rotated_mat.datastart, (float*)rotated_mat.dataend);
-    Map new_map = Map(max_dim, rotated_vector, neighbors_grid, PRMNodes);
-    return new_map;
+    return new Map(max_dim, rotated_vector, neighbors_grid, PRMNodes);
 }
 
-bool Map::isWalkable(int x, int y) {
+bool Map::isWalkable(float x, float y) {
     if (x >= 0 and y >= 0 and x < max_dim and y < max_dim and data->at(gridToIndex(x, y)) < 0.5)
         return true;
     return false;
 }
 
-bool Map::isBlocked(int x, int y) {
+bool Map::isBlocked(float x, float y) {
     if (x >= 0 and y >= 0 and x < max_dim and y < max_dim and data->at(gridToIndex(x, y)) < 0.5)
         return false;
     return true;
 }
-int Map::gridToIndex(uint32_t x, uint32_t y) {
-    return y * max_dim + x;
+int Map::gridToIndex(float x, float y) {
+    return (uint)y * max_dim + (uint)x;
 }
