@@ -47,16 +47,16 @@ std::vector<std::pair<double, double>> find_solution(Map map, double wind_angle_
     //if both fail, fall back to pathfinding
 
     //create solver and solve
-    AStarPathfindingStrategy solver;
+    PRMPathfindingStrategy solver;
     /*cout << "Running Astar:" << endl;
     cout << "start: " + to_string(transformed_start_doubles.first) + ", " + to_string(transformed_start_doubles.second) << endl;
     cout << "goal: " + to_string(transformed_goal_doubles.first) + ", " + to_string(transformed_goal_doubles.second) << endl;*/
 
     auto time_start = std::chrono::high_resolution_clock::now();
     auto path = solver.solve(map, start_node, goal_node, wind_angle_rad);
-    path = solver.solve(map, start_node, goal_node, wind_angle_rad);
+    //path = solver.solve(map, start_node, goal_node, wind_angle_rad);
 
-    path = simplify_path(path, wind_angle_deg, map);
+    //path = simplify_path(path, wind_angle_deg, map);
     auto time_stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
     cout << "Search time: " + std::to_string(duration.count()) << endl;
@@ -77,9 +77,9 @@ std::vector<std::pair<double, double>> find_solution(Map map, double wind_angle_
 
 void do_maps() {
     Map map = Map(100, 100);
-    //map.initPRM(500);
-    //drawPRM(map.PRMNodes, map.max_dim, map.max_dim);
     map.generate_obstacles(30, 100);
+    map.initPRM(500);
+    drawPRM(map.PRMNodes, map.max_dim, map.max_dim);
 
     cv::Mat grid = cv::Mat(map.max_dim, map.max_dim, CV_32FC1, map.data->data());
 

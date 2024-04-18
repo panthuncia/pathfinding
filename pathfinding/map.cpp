@@ -94,8 +94,13 @@ void Map::initPRM(int numSamples) {
         for (int neighbor : neighbors) {
             //TODO: Optimize by caching raycast results and not re-casting for the same path in reverse
             if (neighbor != i) {
-                // Connect node 'i' with its neighbor
-                PRMNodes->at(i)->neighbors.push_back(PRMNodes->at(neighbor).get());
+                auto node = PRMNodes->at(i);
+                auto neighborNode = PRMNodes->at(neighbor);
+                if (raycast(*this, node->x, node->y, neighborNode->x, neighborNode->y)) {
+                    // Connect node 'i' with its neighbor
+                   node->neighbors.push_back(neighborNode.get());
+                   neighborNode->neighbors.push_back(node.get());
+                }
             }
         }
     }
@@ -113,8 +118,10 @@ std::shared_ptr<Node> Map::addSinglePRMNode(uint32_t x, uint32_t y, uint32_t num
     for (int neighbor : neighbors) {
         if (neighbor == id)
             continue;
-        new_node->neighbors.push_back(PRMNodes->at(neighbor).get());
-        PRMNodes->at(neighbor)->neighbors.push_back(new_node.get());
+        if (raycast(*this, new_node->x, new_node->y, PRMNodes->at(neighbor).get()->x, PRMNodes->at(neighbor).get()->y)) {
+            new_node->neighbors.push_back(PRMNodes->at(neighbor).get());
+            PRMNodes->at(neighbor)->neighbors.push_back(new_node.get());
+        }
     }
     PRMNodes->push_back(new_node);
     return(new_node);
