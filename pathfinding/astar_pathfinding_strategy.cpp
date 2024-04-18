@@ -91,7 +91,7 @@ std::vector<std::pair<double, double>> AStarPathfindingStrategy::solve(Map& map,
 	double map_angle_rad = wind_angle_rad - M_PI / 2;
 	double map_angle_deg = map_angle_rad * (180 / M_PI);
 	std::cout << "map angle deg:" + std::to_string(map_angle_deg);
-	Map rotated_map = map.rotate(map_angle_deg);
+	Map& rotated_map = map.rotate(map_angle_deg);
 
 	auto transformed_start_doubles = rotateAndScale(start, map_angle_rad, map.max_dim, map.max_dim, rotated_map.max_dim, rotated_map.max_dim);
 	std::pair<uint32_t, uint32_t> transformed_start_cell;

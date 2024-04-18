@@ -18,7 +18,7 @@
 
 using namespace std;
 
-std::vector<std::pair<double, double>> find_solution(Map map, double wind_angle_deg, Node* start_node, Node* goal_node) {
+std::vector<std::pair<double, double>> find_solution(Map& map, double wind_angle_deg, Node* start_node, Node* goal_node) {
     double wind_angle_rad = wind_angle_deg * (M_PI / 180);
     double nogo_angle_rad = NOGO_ANGLE_DEGREES * (M_PI / 180);
     bool wind_blocked = false;
@@ -53,7 +53,8 @@ std::vector<std::pair<double, double>> find_solution(Map map, double wind_angle_
     cout << "goal: " + to_string(transformed_goal_doubles.first) + ", " + to_string(transformed_goal_doubles.second) << endl;*/
 
     auto time_start = std::chrono::high_resolution_clock::now();
-    auto path = solver.solve(map, start_node, goal_node, wind_angle_rad);
+     auto path = solver.solve(map, start_node, goal_node, wind_angle_rad, nogo_angle_rad);
+
     //path = solver.solve(map, start_node, goal_node, wind_angle_rad);
 
     //path = simplify_path(path, wind_angle_deg, map);
@@ -61,16 +62,20 @@ std::vector<std::pair<double, double>> find_solution(Map map, double wind_angle_
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
     cout << "Search time: " + std::to_string(duration.count()) << endl;
 
-    if (path.size() == 0) {
-        cout << "No path found" << endl;
-        cout << "start: " + std::to_string(start_node->x) + ", " + std::to_string(start_node->y) << std::endl;
-        cout << "goal: " + std::to_string(goal_node->x) + ", " + std::to_string(goal_node->y) << std::endl;
-        //cout << "transformed start: " + std::to_string(transformed_start_doubles.first) + ", " + std::to_string(transformed_start_doubles.second) << std::endl;
-        //cout << "transformed goal: " + std::to_string(transformed_goal_doubles.first) + ", " + std::to_string(transformed_goal_doubles.second) << std::endl;
-        return path;
-    }
+    //if (path.size() == 0) {
+    //    cout << "No path found" << endl;
+    //    cout << "start: " + std::to_string(start_node->x) + ", " + std::to_string(start_node->y) << std::endl;
+    //    cout << "goal: " + std::to_string(goal_node->x) + ", " + std::to_string(goal_node->y) << std::endl;
+    //    //cout << "transformed start: " + std::to_string(transformed_start_doubles.first) + ", " + std::to_string(transformed_start_doubles.second) << std::endl;
+    //    //cout << "transformed goal: " + std::to_string(transformed_goal_doubles.first) + ", " + std::to_string(transformed_goal_doubles.second) << std::endl;
+    //    return path;
+    //}
 
-    displayGrid(map.data, map.max_dim, map.max_dim, path, wind_angle_deg, "grid");
+    std::vector<std::pair<double, double>> startGoalVector;
+    startGoalVector.push_back(std::make_pair(start_node->x, start_node->y));
+    startGoalVector.push_back(std::make_pair(goal_node->x, goal_node->y));
+
+    displayGrid(map.data, map.max_dim, map.max_dim, path.size() == 0? startGoalVector : path, wind_angle_deg, "grid");
     //displayGrid(rotated_map.data, rotated_map.max_dim, rotated_map.max_dim, path_to_doubles(path), 90, "rotated grid");
     return {};
 }
@@ -78,7 +83,7 @@ std::vector<std::pair<double, double>> find_solution(Map map, double wind_angle_
 void do_maps() {
     Map map = Map(100, 100);
     map.generate_obstacles(30, 100);
-    map.initPRM(500);
+    map.initPRM(2000);
     drawPRM(map.PRMNodes, map.max_dim, map.max_dim);
 
     cv::Mat grid = cv::Mat(map.max_dim, map.max_dim, CV_32FC1, map.data->data());

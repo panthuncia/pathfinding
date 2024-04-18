@@ -12,5 +12,6 @@ endif()
 project ("pathfinding")
 include(vcpkg/scripts/buildsystems/vcpkg.cmake)
 find_package(OpenCV REQUIRED)
+find_package(CGAL CONFIG REQUIRED)
 # Include sub-projects.
 add_subdirectory ("pathfinding")

@@ -7,5 +7,6 @@ add_executable (pathfinding "pathfinding.cpp" "pathfinding.h"  "map.h" "pathfind
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET pathfinding PROPERTY CXX_STANDARD 20)
 endif()
-target_link_libraries(pathfinding PRIVATE ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME} PRIVATE CGAL::CGAL)
 # TODO: Add tests and install targets if needed.

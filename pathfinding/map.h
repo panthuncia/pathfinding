@@ -4,13 +4,28 @@
 #include "node.h"
 #include "../extern/annoy/src/annoylib.h"
 #include "../extern/annoy/src/kissrandom.h"
+#include "../extern/ann_1.1.2/include/ANN/ANN.h"
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Search_traits_2.h>
+#include <CGAL/Kd_tree.h>
+#include <CGAL/Kd_tree_rectangle.h>
+#include <CGAL/Orthogonal_k_neighbor_search.h>
+#include <CGAL/Fuzzy_sphere.h>
+
+typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
+typedef Kernel::Point_2 Point_2;
+typedef CGAL::Search_traits_2<Kernel> Traits;
+typedef CGAL::Kd_tree<Traits> Tree;
+typedef CGAL::Orthogonal_k_neighbor_search<Traits> Neighbor_search;
+typedef Neighbor_search::Tree Point_tree;
+typedef CGAL::Fuzzy_sphere<Traits> Fuzzy_circle;
 class Map {
 public:
 	//for initial construction
 	Map(uint32_t map_width, uint32_t map_height);
 	//for rotation
 	Map(uint32_t size, std::shared_ptr<std::vector<float>> new_data, std::shared_ptr<std::vector<std::vector<Node>>> new_grid, std::shared_ptr<std::vector<std::shared_ptr<Node>>> new_prm_nodes);
-	Map rotate(double map_angle_deg);
+	Map& rotate(double map_angle_deg);
 	void addNeighbors(int x, int y);
 	Node* getNode(int x, int y);
 	void generate_obstacles(int num_obstacles, int max_blob_size);
@@ -20,7 +35,8 @@ public:
 	Node* randomNode();
 	void initPRM(int numSamples);
 	std::vector<std::shared_ptr<Node>> sampleNodes(int numNodes);
-	std::shared_ptr<Node> addSinglePRMNode(uint32_t x, uint32_t y, uint32_t num_neighbors);
+	std::vector<std::shared_ptr<Node>> sampleGaussian(int numNodes, float target_x, float target_y, float std_dev);
+	std::shared_ptr<Node> addSinglePRMNode(float x, float y, uint32_t num_neighbors);
 	//std::vector<Node*> getNeighbors(Node* node);
 	uint32_t width;
 	uint32_t height;
@@ -33,7 +49,9 @@ public:
 	std::shared_ptr<std::vector<std::vector<Node>>> neighbors_grid;
 	std::shared_ptr<std::vector<float>> data;
 	std::shared_ptr<std::vector<std::shared_ptr<Node>>> PRMNodes;
-	std::shared_ptr<Annoy::AnnoyIndex<int, int, Annoy::Euclidean, Annoy::Kiss32Random, Annoy::AnnoyIndexSingleThreadedBuildPolicy>> index;
+	std::unordered_map<PointKey, std::shared_ptr<Node>> PRMNodeMap;
+	Point_tree tree;
 private:
 	void create_blob(std::shared_ptr<std::vector<float>> grid, uint32_t blob_start_x, uint32_t blob_start_y, int blob_size);
+	std::shared_ptr<Node> findNodeByPosition(float x, float y);
 };
