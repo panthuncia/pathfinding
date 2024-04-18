@@ -67,9 +67,10 @@ std::vector<std::shared_ptr<Node>> Map::sampleNodes(int numNodes) {
     for (int i = 0; i < numNodes; ++i) {
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::uniform_real_distribution<float> dis(0.0, max_dim);
-        float rand_x = dis(gen);
-        float rand_y = dis(gen);
+        std::uniform_real_distribution<float> x_dis(half_width_diff, max_dim-half_width_diff);
+        std::uniform_real_distribution<float> y_dis(half_height_diff, max_dim - half_height_diff);
+        float rand_x = x_dis(gen);
+        float rand_y = y_dis(gen);
         std::shared_ptr<Node> node = std::make_shared<Node>(rand_x, rand_y);
         nodes.push_back(node);
     }
@@ -104,7 +105,7 @@ void Map::initPRM(int numSamples, float connection_radius) {
     float hypot = sqrt(2 * float(pow(step, 2)));
     for (int i = half_height_diff; i < max_dim - half_height_diff; i += step) {
         for (int j = half_width_diff; j < max_dim - half_width_diff; j += step) {
-            addSinglePRMNode(i, j, hypot);
+            addSinglePRMNode(i, j, hypot+0.1);
         }
     }
 
@@ -146,7 +147,6 @@ void Map::initPRM(int numSamples, float connection_radius) {
         Fuzzy_circle region(query, connection_radius, 0.0 /*exact search*/);
         std::vector<Point_2> result;
         tree.search(std::back_inserter(result), region);
-
         for (const auto& found : result) {
             // Convert found Point_2 back to node indices or references
             auto neighborNode = findNodeByPosition(found.x(), found.y());

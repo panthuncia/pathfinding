@@ -93,7 +93,7 @@ std::vector<std::pair<double, double>> find_solution(Map& map, double wind_angle
 void do_maps() {
     Map map = Map(100, 100);
     map.generate_obstacles(30, 100);
-    map.initPRM(4000, 5.0);
+    map.initPRM(2000, 5.0);
     drawPRM(map.PRMNodes, map.max_dim, map.max_dim);
 
     cv::Mat grid = cv::Mat(map.max_dim, map.max_dim, CV_32FC1, map.data->data());
