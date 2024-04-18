@@ -30,16 +30,17 @@ public:
 	bool isBlocked(float x, float y);
 	int gridToIndex(float x, float y);
 	Node* randomNode();
-	void initPRM(int numSamples);
+	void initPRM(int numSamples, float connection_radius);
 	std::vector<std::shared_ptr<Node>> sampleNodes(int numNodes);
 	std::vector<std::shared_ptr<Node>> sampleGaussian(int numNodes, float target_x, float target_y, float std_dev);
-	std::shared_ptr<Node> addSinglePRMNode(float x, float y, uint32_t num_neighbors);
+	std::shared_ptr<Node> addSinglePRMNode(float x, float y, float connection_radius);
 	//std::vector<Node*> getNeighbors(Node* node);
 	uint32_t width;
 	uint32_t height;
 	uint32_t max_dim;
 	uint32_t half_height_diff;
 	uint32_t half_width_diff;
+	float prm_connection_radius = 0;
 	//right now, we retain pointers to elements in this grid. This is not advisable, as if the vector is resized (as you insert more objects)
 	//all of the pointers are invalidated. We manually call resize() to reserve as much space as we need in the constructor to work around this.
 	//eventually, we should move to arrays instead.

@@ -97,10 +97,20 @@ std::vector<std::shared_ptr<Node>> Map::sampleGaussian(int numNodes, float targe
     return nodes;
 }
 
-void Map::initPRM(int numSamples) {
-    int dimensions = 2;
-    int n_trees = 100;
+void Map::initPRM(int numSamples, float connection_radius) {
+
+    // Start with a low-resolution grid
+    int step = 5;
+    float hypot = sqrt(2 * float(pow(step, 2)));
+    for (int i = half_height_diff; i < max_dim - half_height_diff; i += step) {
+        for (int j = half_width_diff; j < max_dim - half_width_diff; j += step) {
+            addSinglePRMNode(i, j, hypot);
+        }
+    }
+
+    prm_connection_radius = connection_radius;
     auto sampled_nodes = sampleNodes(numSamples);
+
     //PRMNodes->insert(PRMNodes->begin(), sampled_nodes.begin(), sampled_nodes.end());
     int i = 0;
     // Insert points into the tree
@@ -133,7 +143,7 @@ void Map::initPRM(int numSamples) {
     //}
     for (auto& node : sampled_nodes) {
         Point_2 query(node->x, node->y);
-        Fuzzy_circle region(query, k, 0.0 /*exact search*/);
+        Fuzzy_circle region(query, connection_radius, 0.0 /*exact search*/);
         std::vector<Point_2> result;
         tree.search(std::back_inserter(result), region);
 
@@ -161,7 +171,7 @@ std::shared_ptr<Node> Map::findNodeByPosition(float x, float y) {
     return nullptr; // If no node found
 }
 
-std::shared_ptr<Node> Map::addSinglePRMNode(float x, float y, uint32_t num_neighbors) {
+std::shared_ptr<Node> Map::addSinglePRMNode(float x, float y, float connection_radius) {
     int id = PRMNodes->size();
     auto new_node = std::make_shared<Node>(x, y);
     PointKey key{ new_node->x, new_node->y };
@@ -169,7 +179,7 @@ std::shared_ptr<Node> Map::addSinglePRMNode(float x, float y, uint32_t num_neigh
     Point_2 point(new_node->x, new_node->y);
     tree.insert(point);
 
-    Fuzzy_circle region(point, num_neighbors, 0.0 /*exact search*/);
+    Fuzzy_circle region(point, connection_radius, 0.0 /*exact search*/);
     std::vector<Point_2> result;
     tree.search(std::back_inserter(result), region);
 
