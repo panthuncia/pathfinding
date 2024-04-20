@@ -166,8 +166,24 @@ void displayGrid(std::shared_ptr<std::vector<float>> grid, int width, int height
         gridCenter.y - arrowLength * sin(windAngle) // Negative because y-coordinates increase downwards
     );
     cv::arrowedLine(image, gridCenter, arrowEnd, cv::Scalar(0, 255, 0), 2, 8, 0, 0.2);
+
+    int maxWinWidth = 1200;
+    int maxWinHeight = 1200;
+
+    // Calculate scaling factor to maintain aspect ratio
+    double scaleX = (double)maxWinWidth / image.cols;
+    double scaleY = (double)maxWinHeight / image.rows;
+    double scale = std::min(scaleX, scaleY);
+
+    // New dimensions
+    int newWidth = (int)(image.cols * scale);
+    int newHeight = (int)(image.rows * scale);
+
+    // Resize the image
+    cv::Mat resizedImage;
+    cv::resize(image, resizedImage, cv::Size(newWidth, newHeight));
     cv::Mat flipped;
-    cv::flip(image, flipped, 0);
+    cv::flip(resizedImage, flipped, 0);
     cv::imshow(name, flipped);
 }
 

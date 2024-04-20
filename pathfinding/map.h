@@ -8,6 +8,9 @@
 #include <CGAL/Kd_tree_rectangle.h>
 #include <CGAL/Orthogonal_k_neighbor_search.h>
 #include <CGAL/Fuzzy_sphere.h>
+#include <thread>
+#include <boost/asio/thread_pool.hpp>
+#include <boost/asio/post.hpp>
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef Kernel::Point_2 Point_2;
@@ -30,9 +33,10 @@ public:
 	bool isBlocked(float x, float y);
 	int gridToIndex(float x, float y);
 	Node* randomNode();
-	void initPRM(float samples_per_unit_squared, float connection_radius);
+	void initPRM(float num_samples, float connection_radius_percent);
 	std::vector<std::shared_ptr<Node>> sampleNodes(int numNodes);
-	std::vector<std::shared_ptr<Node>> sampleGaussian(int numNodes, float target_x, float target_y, float std_dev);
+	void sampleGaussian(int numNodes, float target_x, float target_y, float std_dev);
+	void addPRMNodes(std::vector<std::shared_ptr<Node>> sampled_nodes);
 	std::shared_ptr<Node> addSinglePRMNode(float x, float y, float connection_radius);
 	//std::vector<Node*> getNeighbors(Node* node);
 	uint32_t width;

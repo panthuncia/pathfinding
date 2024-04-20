@@ -5,6 +5,7 @@
 #include <cmath>
 #include <opencv2/opencv.hpp>
 #include "raycast.h"
+
 Map::Map(uint32_t map_width, uint32_t map_height) {
 
     height = map_height;
@@ -77,43 +78,7 @@ std::vector<std::shared_ptr<Node>> Map::sampleNodes(int numNodes) {
     return nodes;
 }
 
-std::vector<std::shared_ptr<Node>> Map::sampleGaussian(int numNodes, float target_x, float target_y, float std_dev) {
-    std::vector<std::shared_ptr<Node>> nodes;
-    std::random_device rd;  
-    std::mt19937 gen(rd());
-    std::normal_distribution<> d_x(target_x, std_dev);
-    std::normal_distribution<> d_y(target_y, std_dev);
-
-    for (int i = 0; i < numNodes; ++i) {
-        float rand_x = d_x(gen);
-        float rand_y = d_y(gen);
-
-        // Ensure that the sampled points are within bounds
-        rand_x = std::max(0.0f, std::min(rand_x, float(max_dim)));
-        rand_y = std::max(0.0f, std::min(rand_y, float(max_dim)));
-
-        std::shared_ptr<Node> node = std::make_shared<Node>(rand_x, rand_y);
-        nodes.push_back(node);
-    }
-    return nodes;
-}
-
-void Map::initPRM(float samples_per_unit_squared, float connection_radius) {
-
-    // Start with a low-resolution grid
-    int step = 5;
-    float hypot = sqrt(2 * float(pow(step, 2)));
-    for (int i = half_height_diff; i < max_dim - half_height_diff; i += step) {
-        for (int j = half_width_diff; j < max_dim - half_width_diff; j += step) {
-            addSinglePRMNode(i, j, hypot+0.1);
-        }
-    }
-
-    prm_connection_radius = connection_radius;
-    int num_samples = samples_per_unit_squared * ((max_dim - 2 * half_height_diff) * (max_dim - 2 * half_width_diff));
-    auto sampled_nodes = sampleNodes(num_samples);
-
-    //PRMNodes->insert(PRMNodes->begin(), sampled_nodes.begin(), sampled_nodes.end());
+void Map::addPRMNodes(std::vector<std::shared_ptr<Node>> sampled_nodes) {
     int i = 0;
     // Insert points into the tree
     for (auto& node : sampled_nodes) {
@@ -123,29 +88,10 @@ void Map::initPRM(float samples_per_unit_squared, float connection_radius) {
         tree.insert(point);
     }
 
-    // Now, find the nearest neighbors for each point
-    int k = 10; // Number of nearest neighbors to find
-    //for (auto& node : sampled_nodes) {
-    //    Point_2 query(node->x, node->y);
-    //    Neighbor_search search(tree, query, k);
-
-    //    for (auto it = search.begin(); it != search.end(); ++it) {
-    //        Point_2 found = it->first;
-    //        // Convert found Point_2 back to node indices or references
-    //        auto neighborNode = findNodeByPosition(found.x(), found.y());
-    //        PRMNodes->push_back(neighborNode);
-    //        if (neighborNode != node) {
-    //            if (raycast(*this, node->x, node->y, neighborNode->x, neighborNode->y)) {
-    //                // Connect nodes
-    //                node->neighbors.push_back(neighborNode.get());
-    //                neighborNode->neighbors.push_back(node.get());
-    //            }
-    //        }
-    //    }
-    //}
+    // Find the nearest neighbors for each point
     for (auto& node : sampled_nodes) {
         Point_2 query(node->x, node->y);
-        Fuzzy_circle region(query, connection_radius, 0.0 /*exact search*/);
+        Fuzzy_circle region(query, prm_connection_radius, 0.0 /*exact search*/);
         std::vector<Point_2> result;
         tree.search(std::back_inserter(result), region);
         for (const auto& found : result) {
@@ -161,6 +107,47 @@ void Map::initPRM(float samples_per_unit_squared, float connection_radius) {
             }
         }
     }
+}
+
+void Map::sampleGaussian(int numNodes, float target_x, float target_y, float std_dev) {
+    std::vector<std::shared_ptr<Node>> sampled_nodes;
+    std::random_device rd;  
+    std::mt19937 gen(rd());
+    std::normal_distribution<> d_x(target_x, std_dev);
+    std::normal_distribution<> d_y(target_y, std_dev);
+
+    for (int i = 0; i < numNodes; ++i) {
+        float rand_x = d_x(gen);
+        float rand_y = d_y(gen);
+
+        // Ensure that the sampled points are within bounds
+        rand_x = std::max(0.0f, std::min(rand_x, float(max_dim)));
+        rand_y = std::max(0.0f, std::min(rand_y, float(max_dim)));
+
+        std::shared_ptr<Node> node = std::make_shared<Node>(rand_x, rand_y);
+        sampled_nodes.push_back(node);
+    }
+    addPRMNodes(sampled_nodes);
+}
+
+void Map::initPRM(float num_samples, float connection_radius_percent) {
+
+    // Start with a low-resolution grid
+    //int step = 5;
+    //float hypot = sqrt(2 * float(pow(step, 2)));
+    //for (int y = half_height_diff; y < max_dim - half_height_diff; y += step) {
+    //    for (int x = half_width_diff; x < max_dim - half_width_diff; x += step) {
+    //        addSinglePRMNode(x, y, hypot+0.1);
+    //    }
+    //}
+
+    //prm_connection_radius = connection_radius;
+    //int num_samples = samples_per_unit_squared * ((max_dim - 2 * half_height_diff) * (max_dim - 2 * half_width_diff));
+    prm_connection_radius = std::max(width, height) * (connection_radius_percent / 100);
+    auto sampled_nodes = sampleNodes(num_samples);
+
+    //PRMNodes->insert(PRMNodes->begin(), sampled_nodes.begin(), sampled_nodes.end());
+    addPRMNodes(sampled_nodes);
 }
 
 std::shared_ptr<Node> Map::findNodeByPosition(float x, float y) {

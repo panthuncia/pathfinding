@@ -9,4 +9,11 @@ if (CMAKE_VERSION VERSION_GREATER 3.12)
 endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE ${OpenCV_LIBS})
 target_link_libraries(${PROJECT_NAME} PRIVATE CGAL::CGAL)
+include_directories(${Boost_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME}
+  PRIVATE 
+  Boost::system
+  Boost::thread
+)
+target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
 # TODO: Add tests and install targets if needed.

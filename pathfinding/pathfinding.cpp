@@ -91,15 +91,14 @@ std::vector<std::pair<double, double>> find_solution(Map& map, double wind_angle
 }
 
 void do_maps() {
-    Map map = Map(100, 100);
+    Map map = Map(300, 300);
     map.generate_obstacles(30, 100);
-    map.initPRM(0.2, 5.0);
+    map.initPRM(2000, 5);
+    map.sampleGaussian(100, 100, 100, 10.0);
     drawPRM(map.PRMNodes, map.max_dim, map.max_dim);
 
     cv::Mat grid = cv::Mat(map.max_dim, map.max_dim, CV_32FC1, map.data->data());
 
-
-    //y direction in openCV is flipped
     double wind_angle_deg = randomAngleDeg();
 
     auto start = map.randomNode();
