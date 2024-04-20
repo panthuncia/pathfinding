@@ -85,7 +85,8 @@ std::vector<Node*> Map::sampleNodes(int numNodes) {
 void Map::addPRMNodes(std::vector<Node*> sampled_nodes) {
     int i = 0;
     // Insert points into the tree
-    for (auto& node : sampled_nodes) {
+    for (Node* node : sampled_nodes) {
+        PRMNodes->push_back(node);
         PointKey key{ node->x, node->y };
         PRMNodeMap[key] = node;
         Point_2 point(node->x, node->y);
@@ -101,7 +102,6 @@ void Map::addPRMNodes(std::vector<Node*> sampled_nodes) {
         for (Point_2 found : result) {
             // Convert found Point_2 back to node indices or references
             auto neighborNode = findNodeByPosition(found.x(), found.y());
-            PRMNodes->push_back(neighborNode);
             if (neighborNode != node) {
                 if (raycast(*this, node->x, node->y, neighborNode->x, neighborNode->y)) {
                     // Connect nodes
@@ -150,7 +150,6 @@ void Map::initPRM(float num_samples, float connection_radius_percent) {
     prm_connection_radius = std::max(width, height) * (connection_radius_percent / 100);
     auto sampled_nodes = sampleNodes(num_samples);
 
-    //PRMNodes->insert(PRMNodes->begin(), sampled_nodes.begin(), sampled_nodes.end());
     addPRMNodes(sampled_nodes);
 }
 
@@ -178,7 +177,6 @@ Node* Map::addSinglePRMNode(float x, float y, float connection_radius) {
     for (const auto& found : result) {
         // Convert found Point_2 back to node indices or references
         auto neighborNode = findNodeByPosition(found.x(), found.y());
-        PRMNodes->push_back(neighborNode);
         if (neighborNode != new_node) {
             if (raycast(*this, new_node->x, new_node->y, neighborNode->x, neighborNode->y)) {
                 // Connect nodes

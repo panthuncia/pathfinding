@@ -101,7 +101,12 @@ void do_maps() {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
     cout << "PRM build time: " + std::to_string(duration.count()) << endl;
 
-    //map.sampleGaussian(100, 100, 100, 10.0);
+    auto time_start1 = std::chrono::high_resolution_clock::now();
+    map.sampleGaussian(100, 100, 100, 10.0);
+    auto time_stop1 = std::chrono::high_resolution_clock::now();
+    auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop1 - time_start1);
+    cout << "PRM guass sample time: " + std::to_string(duration1.count()) << endl;
+
     drawPRM(map.PRMNodes, map.max_dim, map.max_dim);
 
     cv::Mat grid = cv::Mat(map.max_dim, map.max_dim, CV_32FC1, map.data->data());
