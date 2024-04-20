@@ -187,7 +187,7 @@ void displayGrid(std::shared_ptr<std::vector<float>> grid, int width, int height
     cv::imshow(name, flipped);
 }
 
-void drawPRM(std::shared_ptr<std::vector<std::shared_ptr<Node>>> PRMNodes, int maxX, int maxY) {
+void drawPRM(std::shared_ptr<std::vector<Node*>> PRMNodes, int maxX, int maxY) {
     // Define image size and padding
     int imageWidth = 800;
     int imageHeight = 800;

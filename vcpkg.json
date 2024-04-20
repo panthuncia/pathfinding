@@ -1,8 +1,6 @@
 {
   "dependencies": [
     "opencv",
-    "cgal",
-    "boost",
-    "tbb"
+    "cgal"
   ]
 }

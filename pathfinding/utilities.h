@@ -14,4 +14,4 @@ int randomAngleDeg();
 bool is_in_nogo(Node* start, Node* goal, float wind_angle_rad, float nogo_angle_rad);
 bool is_in_nogo(std::pair<double, double> start, std::pair<double, double> goal, float wind_angle_rad, float nogo_angle_rad);
 void displayGrid(std::shared_ptr<std::vector<float>> grid, int width, int height, const std::vector<std::pair<double, double>>& path, float windAngle, const char* name);
-void drawPRM(std::shared_ptr<std::vector<std::shared_ptr<Node>>> PRMNodes, int maxX, int maxY);
+void drawPRM(std::shared_ptr<std::vector<Node*>> PRMNodes, int maxX, int maxY);

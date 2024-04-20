@@ -88,8 +88,8 @@ std::vector<Node*> PRMPathfindingStrategy::AStar(Map& map, Node* start, Node* go
 }
 
 std::vector<std::pair<double, double>> PRMPathfindingStrategy::solve(Map& map, Node* start, Node* goal, double wind_angle_rad, double no_go_angle_rad) {
-	std::shared_ptr<Node> prmStart = map.addSinglePRMNode(start->x, start->y, map.prm_connection_radius);
-	std::shared_ptr<Node> prmGoal = map.addSinglePRMNode(goal->x, goal->y, map.prm_connection_radius);
-	auto path = AStar(map, prmStart.get(), prmGoal.get(), wind_angle_rad, no_go_angle_rad);
+	Node* prmStart = map.addSinglePRMNode(start->x, start->y, map.prm_connection_radius);
+	Node* prmGoal = map.addSinglePRMNode(goal->x, goal->y, map.prm_connection_radius);
+	auto path = AStar(map, prmStart, prmGoal, wind_angle_rad, no_go_angle_rad);
 	return path_to_doubles(path);
 }

@@ -1,14 +1,13 @@
 #pragma once
 #include <utility>
 #include <queue>
-#include <tbb/concurrent_vector.h>
 
 class Node {
 public:
     float x, y;
     float gCost, hCost, fCost;
     Node* parent;
-    tbb::concurrent_vector<Node*> neighbors;
+    std::vector<Node*> neighbors;
     Node(float x, float y) : x(x), y(y), gCost(INFINITY), hCost(INFINITY), fCost(INFINITY), parent(nullptr) {}
     Node() :gCost(INFINITY), hCost(INFINITY), fCost(INFINITY), parent(nullptr) {}
     void reset()
@@ -21,7 +20,12 @@ public:
     void calculateFCost() {
         fCost = gCost + hCost;
     }
-
+    bool operator == (const Node& n) {
+        if (x == n.x && y == n.y) {
+            return true;
+        }
+        return false;
+    }
 };
 
 struct PointKey {

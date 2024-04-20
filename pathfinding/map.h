@@ -9,8 +9,6 @@
 #include <CGAL/Orthogonal_k_neighbor_search.h>
 #include <CGAL/Fuzzy_sphere.h>
 #include <thread>
-#include <boost/asio/thread_pool.hpp>
-#include <boost/asio/post.hpp>
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef Kernel::Point_2 Point_2;
@@ -24,7 +22,8 @@ public:
 	//for initial construction
 	Map(uint32_t map_width, uint32_t map_height);
 	//for rotation
-	Map(uint32_t size, std::shared_ptr<std::vector<float>> new_data, std::shared_ptr<std::vector<std::vector<Node>>> new_grid, std::shared_ptr<std::vector<std::shared_ptr<Node>>> new_prm_nodes);
+	Map(uint32_t size, std::shared_ptr<std::vector<float>> new_data, std::shared_ptr<std::vector<std::vector<Node>>> new_grid);
+	~Map();
 	Map* rotate(double map_angle_deg);
 	void addNeighbors(int x, int y);
 	Node* getNode(int x, int y);
@@ -34,10 +33,10 @@ public:
 	int gridToIndex(float x, float y);
 	Node* randomNode();
 	void initPRM(float num_samples, float connection_radius_percent);
-	std::vector<std::shared_ptr<Node>> sampleNodes(int numNodes);
+	std::vector<Node*> sampleNodes(int numNodes);
 	void sampleGaussian(int numNodes, float target_x, float target_y, float std_dev);
-	void addPRMNodes(std::vector<std::shared_ptr<Node>> sampled_nodes);
-	std::shared_ptr<Node> addSinglePRMNode(float x, float y, float connection_radius);
+	void addPRMNodes(std::vector<Node*> sampled_nodes);
+	Node* addSinglePRMNode(float x, float y, float connection_radius);
 	//std::vector<Node*> getNeighbors(Node* node);
 	uint32_t width;
 	uint32_t height;
@@ -50,10 +49,10 @@ public:
 	//eventually, we should move to arrays instead.
 	std::shared_ptr<std::vector<std::vector<Node>>> neighbors_grid;
 	std::shared_ptr<std::vector<float>> data;
-	std::shared_ptr<std::vector<std::shared_ptr<Node>>> PRMNodes;
-	std::unordered_map<PointKey, std::shared_ptr<Node>> PRMNodeMap;
+	std::shared_ptr<std::vector<Node*>> PRMNodes;
+	std::unordered_map<PointKey, Node*> PRMNodeMap;
 	Point_tree tree;
 private:
 	void create_blob(std::shared_ptr<std::vector<float>> grid, uint32_t blob_start_x, uint32_t blob_start_y, int blob_size);
-	std::shared_ptr<Node> findNodeByPosition(float x, float y);
+	Node* findNodeByPosition(float x, float y);
 };

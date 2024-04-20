@@ -92,9 +92,16 @@ std::vector<std::pair<double, double>> find_solution(Map& map, double wind_angle
 
 void do_maps() {
     Map map = Map(300, 300);
+
     map.generate_obstacles(30, 100);
+
+    auto time_start = std::chrono::high_resolution_clock::now();
     map.initPRM(2000, 5);
-    map.sampleGaussian(100, 100, 100, 10.0);
+    auto time_stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_stop - time_start);
+    cout << "PRM build time: " + std::to_string(duration.count()) << endl;
+
+    //map.sampleGaussian(100, 100, 100, 10.0);
     drawPRM(map.PRMNodes, map.max_dim, map.max_dim);
 
     cv::Mat grid = cv::Mat(map.max_dim, map.max_dim, CV_32FC1, map.data->data());
